@@ -1,12 +1,14 @@
-import { Text } from "@mantine/core";
+import { Loader, Text } from "@mantine/core";
 import { useLoaderData } from "@remix-run/react";
 import {
+  MRT_Cell,
   MRT_TableOptions,
   MantineReactTable,
   useMantineReactTable,
   type MRT_ColumnDef,
 } from "mantine-react-table";
 import { useMemo } from "react";
+import { ClientOnly } from "remix-utils/client-only";
 import { EditModal } from "~/components/Table/EditModal";
 import { RowActions } from "~/components/Table/RowActions";
 import { useDataAction } from "~/utils/hooks/useDataAction";
@@ -79,11 +81,29 @@ export default function AdminRoles() {
         header: "Created",
         accessorKey: "created",
         enableEditing: false,
+        Cell: ({ cell }: { cell: MRT_Cell<Role, unknown> }) => {
+          const created = cell.getValue() as string;
+          return (
+            <ClientOnly fallback={<Loader />}>
+              {() => new Date(created).toLocaleString()}
+            </ClientOnly>
+          );
+        },
       },
       {
         header: "Deleted",
         accessorKey: "deleted",
         enableEditing: false,
+        Cell: ({ cell }: { cell: MRT_Cell<Role, unknown> }) => {
+          const deleted = cell.getValue() as string;
+          return deleted ? (
+            <ClientOnly fallback={<Loader />}>
+              {() => new Date(deleted).toLocaleString()}
+            </ClientOnly>
+          ) : (
+            ""
+          );
+        },
       },
     ],
     []
@@ -99,6 +119,9 @@ export default function AdminRoles() {
         pageSize: 500,
       },
       showGlobalFilter: true,
+      columnVisibility: {
+        id: false,
+      },
     },
     positionGlobalFilter: "left",
     autoResetAll: false,

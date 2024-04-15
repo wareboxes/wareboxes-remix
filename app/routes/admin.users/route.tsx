@@ -122,10 +122,10 @@ export default function AdminUsers() {
         header: "Created",
         accessorKey: "created",
         Cell: ({ cell }: { cell: MRT_Cell<User, unknown> }) => {
-          const created = cell.getValue();
+          const created = cell.getValue() as string;
           return (
             <ClientOnly fallback={<Loader />}>
-              {() => new Date(created as string).toLocaleString()}
+              {() => new Date(created).toLocaleString()}
             </ClientOnly>
           );
         },
