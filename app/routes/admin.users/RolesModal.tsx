@@ -1,14 +1,5 @@
-import {
-  ActionIcon,
-  Center,
-  Modal,
-  Space,
-  Table
-} from "@mantine/core";
-import {
-  useActionData,
-  useNavigation
-} from "@remix-run/react";
+import { ActionIcon, Center, Modal, Space, Table } from "@mantine/core";
+import { useActionData, useNavigation } from "@remix-run/react";
 import { IconTrash } from "@tabler/icons-react";
 import { SelectRole as Role, SelectUser as User } from "~/utils/types/db/users";
 import { AddRoleForm } from "./AddRoleForm";
@@ -69,15 +60,18 @@ export function RolesModal({
             {row.userRoles.map((role) => (
               <Table.Tr key={role.id}>
                 <Table.Td>
-                  <ActionIcon
-                    variant="outline"
-                    color="red"
-                    onClick={() =>
-                      deleteUserRole(row.id.toString(), role.id.toString())
-                    }
-                  >
-                    <IconTrash />
-                  </ActionIcon>
+                  {(role.description !== "Self role" ||
+                    role.name !== row.email) && (
+                    <ActionIcon
+                      variant="outline"
+                      color="red"
+                      onClick={() =>
+                        deleteUserRole(row.id.toString(), role.id.toString())
+                      }
+                    >
+                      <IconTrash />
+                    </ActionIcon>
+                  )}
                 </Table.Td>
                 <Table.Td>{role.name}</Table.Td>
                 <Table.Td>{role.description}</Table.Td>
