@@ -1,0 +1,105 @@
+import { relations } from "drizzle-orm";
+import {
+  boolean,
+  date,
+  integer,
+  pgEnum,
+  serial,
+  timestamp,
+  varchar,
+} from "drizzle-orm/pg-core";
+import { accounts } from "./accounts";
+import { wareboxes } from "./base";
+import { itemBatches } from "./inventory";
+import { items } from "./items";
+
+export const orderStatus = pgEnum("order_status", [
+  "awaiting shipment",
+  "shipped",
+  "cancelled",
+  "held",
+  "processing",
+  "open",
+]);
+
+export const pickWaves = wareboxes.table("pick_waves", {
+  id: serial("id").primaryKey().notNull(),
+  created: timestamp("created", { mode: "string" }).defaultNow().notNull(),
+  deleted: timestamp("deleted", { mode: "string" }),
+  name: varchar("name"),
+});
+
+export const orders = wareboxes.table("orders", {
+  id: serial("id").primaryKey().notNull(),
+  created: timestamp("created", { mode: "string" }).defaultNow().notNull(),
+  deleted: timestamp("deleted", { mode: "string" }),
+  rush: boolean("rush").default(false).notNull(),
+  // TODO: failed to parse database type 'wareboxes.order_status'
+  status: orderStatus("status").notNull(),
+  addressId: integer("address_id").default(1).notNull(),
+  confirmed: timestamp("confirmed", { mode: "string" }),
+  closed: timestamp("closed", { mode: "string" }),
+  shipby: date("shipby"),
+  waveId: integer("wave_id").references(() => pickWaves.id),
+  accountId: integer("account_id").references(() => accounts.id),
+});
+export const orderItems = wareboxes.table("order_items", {
+  id: serial("id").primaryKey().notNull(),
+  created: timestamp("created", { mode: "string" }).defaultNow().notNull(),
+  deleted: timestamp("deleted", { mode: "string" }),
+  qty: integer("qty").notNull(),
+  itemId: integer("item_id")
+    .notNull()
+    .references(() => items.id),
+  orderId: integer("order_id")
+    .notNull()
+    .references(() => orders.id),
+  itemBatchId: integer("item_batch_id").references(() => itemBatches.id),
+});
+
+export const orderActivity = wareboxes.table("order_activity", {
+  id: serial("id").primaryKey().notNull(),
+  created: timestamp("created", { mode: "string" }).defaultNow().notNull(),
+  deleted: timestamp("deleted", { mode: "string" }),
+  orderId: integer("order_id").references(() => orders.id),
+  action: varchar("action", { length: 255 }).notNull(),
+});
+
+export const orderRelationships = relations(orders, ({ one, many }) => ({
+  orderItems: many(orderItems, { relationName: "orderItems" }),
+  orderActivity: many(orderActivity, { relationName: "orderActivity" }),
+  account: one(accounts, {
+    fields: [orders.accountId],
+    references: [accounts.id],
+  }),
+  wave: one(pickWaves, {
+    fields: [orders.waveId],
+    references: [pickWaves.id],
+  }),
+}));
+
+export const orderItemRelationships = relations(orderItems, ({ one }) => ({
+  item: one(items, {
+    fields: [orderItems.itemId],
+    references: [items.id],
+    relationName: "orderItems",
+  }),
+  itemBatch: one(itemBatches, {
+    fields: [orderItems.itemBatchId],
+    references: [itemBatches.id],
+  }),
+}));
+
+export const orderActivityRelationships = relations(orderActivity, ({ one }) => ({
+  order: one(orders, {
+    fields: [orderActivity.orderId],
+    references: [orders.id],
+    relationName: "orderActivity",
+  }),
+}));
+
+export type SelectOrder = typeof orders.$inferSelect;
+export type InsertOrder = typeof orders.$inferInsert;
+
+export type SelectOrderItem = typeof orderItems.$inferSelect;
+export type InsertOrderItem = typeof orderItems.$inferInsert;
