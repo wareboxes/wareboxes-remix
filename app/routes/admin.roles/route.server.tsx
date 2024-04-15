@@ -1,5 +1,13 @@
 import { ActionFunctionArgs, json } from "@remix-run/node";
-import { UpdateRoleSchema, deleteRole, getRoles, restoreRole, updateRole } from "~/utils/permissions";
+import {
+  DeleteRestoreRoleSchema,
+  UpdateRoleSchema,
+  deleteRole,
+  getRoles,
+  restoreRole,
+  updateRole,
+} from "~/utils/permissions";
+import { actionResponse } from "~/utils/types/actions";
 
 export async function loader() {
   return {
@@ -22,7 +30,7 @@ export async function action({ request }: ActionFunctionArgs) {
       return await handleRestore(formData);
     }
     default:
-      return json({ error: "Invalid intent" }, { status: 400 });
+      return json(actionResponse(false, "Invalid intent"));
   }
 }
 
@@ -30,24 +38,44 @@ async function handleUpdate(formData: FormData) {
   const result = UpdateRoleSchema.safeParse(Object.fromEntries(formData));
 
   if (!result.success) {
-    return { error: "Invalid role data", issues: result.error.flatten() };
+    return json(
+      actionResponse(false, "Invalid role data", result.error.flatten())
+    );
   }
 
   const { roleId, ...roleData } = result.data;
-  const success = await updateRole(roleId, roleData);
-  return json({ success });
+  const res = await updateRole(roleId, roleData);
+  return json(actionResponse(res));
 }
 
 async function handleDelete(formData: FormData) {
-  const roleId = formData.get("roleId");
+  const result = DeleteRestoreRoleSchema.safeParse(
+    Object.fromEntries(formData)
+  );
 
-  const success = await deleteRole(Number(roleId));
-  return json({ success });
+  if (!result.success) {
+    return json(
+      actionResponse(false, "Invalid role id", result.error.flatten())
+    );
+  }
+
+  const { roleId } = result.data;
+  const res = await deleteRole(Number(roleId));
+  return json(actionResponse(res));
 }
 
 async function handleRestore(formData: FormData) {
-  const roleId = formData.get("roleId");
+  const result = DeleteRestoreRoleSchema.safeParse(
+    Object.fromEntries(formData)
+  );
 
-  const success = await restoreRole(Number(roleId));
-  return json({ success });
+  if (!result.success) {
+    return json(
+      actionResponse(false, "Invalid role id", result.error.flatten())
+    );
+  }
+
+  const { roleId } = result.data;
+  const res = await restoreRole(Number(roleId));
+  return json(actionResponse(res));
 }

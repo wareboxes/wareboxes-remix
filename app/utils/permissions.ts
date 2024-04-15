@@ -428,6 +428,10 @@ export const UpdateRoleSchema = z.object({
   description: z.string().optional(),
 });
 
+export const DeleteRestoreRoleSchema = z.object({
+  roleId: z.number({ coerce: true }).positive("Invalid role ID"),
+});
+
 export const AddDeleteUserRoleSchema = z.object({
   userId: z.number({ coerce: true }).positive("Invalid user ID"),
   roleId: z.number({ coerce: true }).positive("Invalid role ID"),

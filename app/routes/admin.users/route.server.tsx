@@ -4,6 +4,7 @@ import {
   addRoleToUser,
   getRoles,
 } from "~/utils/permissions";
+import { actionResponse } from "~/utils/types/actions";
 import {
   DeleteRestoreUserSchema,
   UserUpdateSchema,
@@ -13,24 +14,6 @@ import {
   restoreUser,
   updateUser,
 } from "~/utils/users";
-
-export interface ActionResponse {
-  success: boolean;
-  error: string | null;
-  issues: Record<string, unknown> | null;
-}
-
-function actionResponse(
-  success: boolean = false,
-  error: string | null = null,
-  issues: Record<string, unknown> | null = null
-): ActionResponse {
-  return {
-    success,
-    error,
-    issues,
-  };
-}
 
 export async function loader() {
   return {
