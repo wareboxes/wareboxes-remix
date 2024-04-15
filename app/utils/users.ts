@@ -66,6 +66,34 @@ export const deleteUserRole = async (
 ): Promise<boolean> => {
   const { userId, roleId, userRoleId } = params;
 
+  if ((!userId || !roleId) && !userRoleId) {
+    throw new Error("Either user ID and role ID or user role ID is required");
+  }
+
+  if (userRoleId) {
+    const res = await db
+      .select({ description: roles.description })
+      .from(roles)
+      .innerJoin(userRoles, eq(userRoles.id, userRoleId));
+    if (res[0].description === "Self role") {
+      throw new Error("Cannot delete self role");
+    }
+  } else {
+    const res = await db
+      .select({ description: roles.description })
+      .from(roles)
+      .innerJoin(userRoles, eq(userRoles.roleId, roles.id))
+      .where(
+        and(
+          eq(userRoles.userId, Number(userId)),
+          eq(userRoles.roleId, Number(roleId))
+        )
+      );
+    if (res[0].description === "Self role") {
+      throw new Error("Cannot delete self role");
+    }
+  }
+
   const query = db
     .update(userRoles)
     .set({ deleted: new Date().toISOString() })
@@ -202,7 +230,7 @@ export const getUsers = async (showDeleted = false): Promise<User[]> => {
 };
 
 export const UserUpdateSchema = z.object({
-  userId: z.number({ coerce: true }).positive('Invalid user ID'),
+  userId: z.number({ coerce: true }).positive("Invalid user ID"),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   nickName: z.string().optional(),
@@ -210,5 +238,5 @@ export const UserUpdateSchema = z.object({
 });
 
 export const DeleteRestoreUserSchema = z.object({
-  userId: z.number({ coerce: true }).positive('Invalid user ID'),
+  userId: z.number({ coerce: true }).positive("Invalid user ID"),
 });
