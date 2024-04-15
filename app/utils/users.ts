@@ -202,9 +202,13 @@ export const getUsers = async (showDeleted = false): Promise<User[]> => {
 };
 
 export const UserUpdateSchema = z.object({
-  userId: z.number({ coerce: true }),
+  userId: z.number({ coerce: true }).positive('Invalid user ID'),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   nickName: z.string().optional(),
   phone: z.string().optional(),
+});
+
+export const DeleteRestoreUserSchema = z.object({
+  userId: z.number({ coerce: true }).positive('Invalid user ID'),
 });

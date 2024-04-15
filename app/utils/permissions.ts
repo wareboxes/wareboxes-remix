@@ -211,7 +211,7 @@ export const getRoles = async (
           ),
           '[]'
         )
-      `
+      `,
     })
     .from(roles)
     .where((roles) => {
@@ -423,9 +423,14 @@ export async function addDevAdmin(email: string) {
 }
 
 export const UpdateRoleSchema = z.object({
-  roleId: z.number({ coerce: true }),
+  roleId: z.number({ coerce: true }).positive("Invalid role ID"),
   name: z.string().optional(),
   description: z.string().optional(),
+});
+
+export const AddDeleteUserRoleSchema = z.object({
+  userId: z.number({ coerce: true }).positive("Invalid user ID"),
+  roleId: z.number({ coerce: true }).positive("Invalid role ID"),
 });
 
 // export const withAuth = (

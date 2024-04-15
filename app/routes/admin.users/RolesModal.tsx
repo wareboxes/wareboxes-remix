@@ -1,20 +1,19 @@
 import {
   ActionIcon,
-  Button,
   Center,
-  ComboboxItem,
-  Loader,
   Modal,
-  Select,
   Space,
-  Table,
-  Text,
+  Table
 } from "@mantine/core";
-import { Form, useActionData, useNavigation } from "@remix-run/react";
+import {
+  useActionData,
+  useNavigation
+} from "@remix-run/react";
 import { IconTrash } from "@tabler/icons-react";
-import { useState } from "react";
 import { SelectRole as Role, SelectUser as User } from "~/utils/types/db/users";
-import { action } from "./route.server";
+import { AddRoleForm } from "./AddRoleForm";
+import { ActionResponse } from "./route.server";
+
 export function RolesModal({
   roles,
   row,
@@ -26,9 +25,9 @@ export function RolesModal({
   setSelectedRow: (row: User | null) => void;
   deleteUserRole: (userId: string, roleId: string) => void;
 }) {
-  const { addUserRoleError: error } = useActionData<typeof action>() ?? {};
-  const [selectedRole, setSelectedRole] = useState<ComboboxItem | null>(null);
+  const actionData = useActionData<ActionResponse>();
   const { state: navState } = useNavigation();
+
   const filteredRoles = roles.filter((role) => {
     // If self role or user already has role, do not show in list
     if (
@@ -48,32 +47,12 @@ export function RolesModal({
     >
       {filteredRoles?.length > 0 && (
         <Center>
-          <Form action="/admin/users" method="POST">
-            <input type="hidden" name="intent" value="addUserRole" />
-            <input type="hidden" name="userId" value={row?.id} />
-            {error && (
-              <Center>
-                <Text variant="error">{error}</Text>
-              </Center>
-            )}
-            <Select
-              allowDeselect={false}
-              name="roleId"
-              data={filteredRoles.map((role) => ({
-                value: role.id.toString(),
-                label: role.name,
-              }))}
-              value={selectedRole ? selectedRole.value : ""}
-              onChange={(_value, option) => setSelectedRole(option)}
-              placeholder="Select role"
-              required
-            />
-            <Center>
-              <Button mt="sm" type="submit" disabled={navState === "submitting"}>
-                {navState === "submitting" ? <Loader /> : "Add role"}
-              </Button>
-            </Center>
-          </Form>
+          <AddRoleForm
+            actionData={actionData}
+            navState={navState}
+            row={row}
+            filteredRoles={filteredRoles}
+          />
           <Space h="md" />
         </Center>
       )}
