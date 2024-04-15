@@ -1,6 +1,11 @@
 import { ActionFunctionArgs, json } from "@remix-run/node";
-import { addRoleToUser, getRoles } from "~/utils/permissions";
 import {
+  AddDeleteUserRoleSchema,
+  addRoleToUser,
+  getRoles,
+} from "~/utils/permissions";
+import {
+  DeleteRestoreUserSchema,
   UserUpdateSchema,
   deleteUser,
   deleteUserRole,
@@ -8,6 +13,24 @@ import {
   restoreUser,
   updateUser,
 } from "~/utils/users";
+
+export interface ActionResponse {
+  success: boolean;
+  error: string | null;
+  issues: Record<string, unknown> | null;
+}
+
+function actionResponse(
+  success: boolean = false,
+  error: string | null = null,
+  issues: Record<string, unknown> | null = null
+): ActionResponse {
+  return {
+    success,
+    error,
+    issues,
+  };
+}
 
 export async function loader() {
   return {
@@ -37,7 +60,7 @@ export async function action({ request }: ActionFunctionArgs) {
       return await handleDeleteUserRole(formData);
     }
     default:
-      return json({ error: "Invalid intent" }, { status: 400 });
+      return json(actionResponse(false, "Invalid intent"));
   }
 }
 
@@ -45,47 +68,75 @@ async function handleUpdate(formData: FormData) {
   const result = UserUpdateSchema.safeParse(Object.fromEntries(formData));
 
   if (!result.success) {
-    return { error: "Invalid user data", issues: result.error.flatten() };
+    return json(
+      actionResponse(false, "Invalid user data", result.error.flatten())
+    );
   }
 
   const { userId, ...userData } = result.data;
   const res = await updateUser(userId, userData);
-  return json({ success: res });
+  return json(actionResponse(res));
 }
 
 async function handleDelete(formData: FormData) {
-  const userId = formData.get("userId");
+  const result = DeleteRestoreUserSchema.safeParse(
+    Object.fromEntries(formData)
+  );
 
-  const res = await deleteUser(Number(userId));
-  return json({ success: res });
-}
-
-async function handleRestore(formData: FormData) {
-  const userId = formData.get("userId");
-
-  const res = await restoreUser(Number(userId));
-  return json({ success: res });
-}
-
-async function handleAddUserRole(formData: FormData) {
-  const { userId, roleId } = Object.fromEntries(formData);
-  if (!userId || !roleId) {
+  if (!result.success) {
     return json(
-      { success: false, addUserRoleError: "Invalid user or role" },
-      { status: 400 }
+      actionResponse(false, "Invalid user data", result.error.flatten())
     );
   }
 
+  const { userId } = result.data;
+  const res = await deleteUser(Number(userId));
+  return json(actionResponse(res));
+}
+
+async function handleRestore(formData: FormData) {
+  const result = DeleteRestoreUserSchema.safeParse(
+    Object.fromEntries(formData)
+  );
+
+  if (!result.success) {
+    return json(
+      actionResponse(false, "Invalid user data", result.error.flatten())
+    );
+  }
+
+  const { userId } = result.data;
+  const res = await restoreUser(Number(userId));
+  return json(actionResponse(res));
+}
+
+async function handleAddUserRole(formData: FormData) {
+  const result = AddDeleteUserRoleSchema.safeParse(
+    Object.fromEntries(formData)
+  );
+
+  if (!result.success) {
+    return json(actionResponse(false, "Invalid data", result.error.flatten()));
+  }
+
+  const { userId, roleId } = result.data;
   const res = await addRoleToUser(Number(userId), Number(roleId));
-  return json({ success: res });
+  return json(actionResponse(res));
 }
 
 async function handleDeleteUserRole(formData: FormData) {
-  const { userId, roleId } = Object.fromEntries(formData);
+  const result = AddDeleteUserRoleSchema.safeParse(
+    Object.fromEntries(formData)
+  );
 
+  if (!result.success) {
+    return json(actionResponse(false, "Invalid data", result.error.flatten()));
+  }
+
+  const { userId, roleId } = result.data;
   const res = await deleteUserRole({
     userId: Number(userId),
     roleId: Number(roleId),
   });
-  return json({ success: res });
+  return json(actionResponse(res));
 }
