@@ -11,7 +11,7 @@ import {
 import { Form } from "@remix-run/react";
 import { useState } from "react";
 import { SelectRole as Role, SelectUser as User } from "~/utils/types/db/users";
-import { ActionResponse } from "./route.server";
+import { ActionResponse } from "~/utils/types/actions";
 
 interface Props {
   actionData?: ActionResponse;
@@ -30,7 +30,7 @@ export function AddRoleForm({
 
   return (
     <Form action="/admin/users" method="POST">
-      <input type="hidden" name="intent" value="addUserRole" />
+      <Input type="hidden" name="intent" value="addUserRole" />
       <Input type="hidden" name="userId" value={row?.id} required />
       {actionData?.error && (
         <Center>
@@ -48,8 +48,10 @@ export function AddRoleForm({
         }))}
         value={selectedRole ? selectedRole.value : ""}
         placeholder="Select role"
+        searchable
         required
         onChange={(_value, option) => setSelectedRole(option)}
+        nothingFoundMessage="No roles found"
       />
       <Center>
         <Button mt="sm" type="submit" disabled={navState === "submitting"}>

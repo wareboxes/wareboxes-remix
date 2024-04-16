@@ -68,14 +68,23 @@ export default function AdminRoles() {
         header: "ID",
         accessorKey: "id",
         enableEditing: false,
+        Edit: () => null,
       },
       {
         header: "Name",
         accessorKey: "name",
+        enableEditing: (row) => row.original.description !== "Self role"
       },
       {
         header: "Description",
         accessorKey: "description",
+        enableEditing: (row) => row.original.description !== "Self role"
+      },
+      {
+        header: "Child Roles",
+        accessorKey: "roles",
+        enableEditing: false,
+        Edit: () => null,
       },
       {
         header: "Created",
@@ -89,6 +98,7 @@ export default function AdminRoles() {
             </ClientOnly>
           );
         },
+        Edit: () => null,
       },
       {
         header: "Deleted",
@@ -104,6 +114,7 @@ export default function AdminRoles() {
             ""
           );
         },
+        Edit: () => null,
       },
     ],
     []

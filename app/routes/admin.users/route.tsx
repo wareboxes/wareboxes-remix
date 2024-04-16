@@ -41,12 +41,6 @@ export default function AdminUsers() {
       successMessage: "User restored successfully",
     },
   });
-  const userRoleDeleter = useDataAction({
-    action: "deleteUserRole",
-    notificationMessages: {
-      successMessage: "User role deleted successfully",
-    },
-  });
 
   const deleteUser = async (userId: string) => {
     const formData = new FormData();
@@ -72,17 +66,6 @@ export default function AdminUsers() {
     table.setEditingRow(null);
   };
 
-  const deleteUserRole = useCallback(
-    async (userId: string, roleId: string) => {
-      const formData = new FormData();
-      formData.append("intent", "deleteUserRole");
-      formData.append("userId", userId);
-      formData.append("roleId", roleId);
-      userRoleDeleter.performAction(formData);
-    },
-    [userRoleDeleter]
-  );
-
   const openRolesModal = useCallback(
     (row: MRT_Row<User>) => {
       setSelectedRow({ id: row.original.id });
@@ -96,6 +79,7 @@ export default function AdminUsers() {
         header: "ID",
         accessorKey: "id",
         enableEditing: false,
+        Edit: () => null,
       },
       {
         header: "Email",
@@ -129,6 +113,7 @@ export default function AdminUsers() {
             </ClientOnly>
           );
         },
+        Edit: () => null,
         enableEditing: false,
       },
       {
@@ -144,6 +129,7 @@ export default function AdminUsers() {
             ""
           );
         },
+        Edit: () => null,
         enableEditing: false,
       },
       {
@@ -200,7 +186,7 @@ export default function AdminUsers() {
         table={table}
         row={row}
         internalEditComponents={internalEditComponents}
-        title="Edit User"
+        title={`Edit User - ${row.original.email}`}
       />
     ),
     mantineTableProps: {
@@ -214,7 +200,6 @@ export default function AdminUsers() {
         roles={roles}
         row={users.find((user) => user.id === selectedRow?.id) || null}
         setSelectedRow={setSelectedRow}
-        deleteUserRole={deleteUserRole}
       />
       <MantineReactTable table={table} />
     </>

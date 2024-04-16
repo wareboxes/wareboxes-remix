@@ -15,13 +15,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
     key: "layout",
     defaultValue: "default",
   });
+  const [width] = useLocalStorage({
+    key: "navbarWidth",
+    defaultValue: 200,
+  });
 
   return (
     <AppShell
       header={{ height: 48 }}
       navbar={{
-        width: { base: 200, lg: 240 },
-        breakpoint: "sm",
+        width: width,
+        breakpoint: "xs",
         collapsed: { mobile: !navOpen, desktop: !navOpen },
       }}
       layout={layout as AppShellProps["layout"]}
