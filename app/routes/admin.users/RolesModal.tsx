@@ -3,21 +3,39 @@ import { useActionData, useNavigation } from "@remix-run/react";
 import { IconTrash } from "@tabler/icons-react";
 import { SelectRole as Role, SelectUser as User } from "~/utils/types/db/users";
 import { AddRoleForm } from "./AddRoleForm";
-import { ActionResponse } from "./route.server";
+import { ActionResponse } from "~/utils/types/actions";
+import { useCallback } from "react";
+import { useDataAction } from "~/utils/hooks/useDataAction";
 
 export function RolesModal({
   roles,
   row,
   setSelectedRow,
-  deleteUserRole,
 }: {
   roles: Role[];
   row: User | null;
   setSelectedRow: (row: User | null) => void;
-  deleteUserRole: (userId: string, roleId: string) => void;
 }) {
   const actionData = useActionData<ActionResponse>();
   const { state: navState } = useNavigation();
+
+  const userRoleDeleter = useDataAction({
+    action: "deleteUserRole",
+    notificationMessages: {
+      successMessage: "User role deleted successfully",
+    },
+  });
+
+  const deleteUserRole = useCallback(
+    async (userId: string, roleId: string) => {
+      const formData = new FormData();
+      formData.append("intent", "deleteUserRole");
+      formData.append("userId", userId);
+      formData.append("roleId", roleId);
+      userRoleDeleter.performAction(formData);
+    },
+    [userRoleDeleter]
+  );
 
   const filteredRoles = roles.filter((role) => {
     // If self role or user already has role, do not show in list
@@ -68,6 +86,7 @@ export function RolesModal({
                       onClick={() =>
                         deleteUserRole(row.id.toString(), role.id.toString())
                       }
+                      disabled={userRoleDeleter.loading}
                     >
                       <IconTrash />
                     </ActionIcon>

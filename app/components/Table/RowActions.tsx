@@ -33,7 +33,8 @@ export function RowActions<T extends Record<string, any>>({
     },
   });
 
-  const deleted = row.original.deleted;
+  const isDeleted = row.original.deleted;
+  const isSelfRole = row.original.description === "Self role";
 
   const openDeleteConfirmModal = (row: MRT_Row<T>) =>
     modals.openConfirmModal({
@@ -46,13 +47,16 @@ export function RowActions<T extends Record<string, any>>({
 
   return (
     <Flex gap="md">
-      <Tooltip label="Edit">
-        <ActionIcon variant="outline" onClick={() => table.setEditingRow(row)}>
+      <Tooltip label={isSelfRole ? "Cannot edit self role" : "Edit"}>
+        <ActionIcon
+          variant="outline"
+          disabled={isSelfRole}
+          onClick={() => table.setEditingRow(row)}
+        >
           <IconEdit />
         </ActionIcon>
       </Tooltip>
-
-      {deleted ? (
+      {isDeleted ? (
         <Tooltip label="Restore">
           <ActionIcon
             variant="outline"
@@ -64,12 +68,12 @@ export function RowActions<T extends Record<string, any>>({
           </ActionIcon>
         </Tooltip>
       ) : (
-        <Tooltip label="Delete">
+        <Tooltip label={isSelfRole ? "Cannot delete self role" : "Delete"}>
           <ActionIcon
             variant="outline"
             color="red"
             onClick={() => openDeleteConfirmModal(row)}
-            disabled={deleter.loading}
+            disabled={deleter.loading || isSelfRole}
           >
             {deleter.loading ? <Loader /> : <IconTrash />}
           </ActionIcon>
