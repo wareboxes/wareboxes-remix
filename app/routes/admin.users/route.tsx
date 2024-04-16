@@ -12,8 +12,8 @@ import { useCallback, useMemo, useState } from "react";
 import { ClientOnly } from "remix-utils/client-only";
 import { EditModal } from "~/components/Table/EditModal";
 import { RowActions } from "~/components/Table/RowActions";
-import { useDataAction } from "~/utils/hooks/useDataAction";
 import { SelectRole as Role, SelectUser as User } from "~/utils/types/db/users";
+import { Actions } from "./Actions";
 import { RolesModal } from "./RolesModal";
 import { action, loader } from "./route.server";
 
@@ -22,25 +22,7 @@ export { action, loader };
 export default function AdminUsers() {
   const [selectedRow, setSelectedRow] = useState<Pick<User, "id"> | null>(null);
   const { users, roles } = useLoaderData<{ users: User[]; roles: Role[] }>();
-
-  const updater = useDataAction({
-    action: "update",
-    notificationMessages: {
-      successMessage: "User updated successfully",
-    },
-  });
-  const deleter = useDataAction({
-    action: "delete",
-    notificationMessages: {
-      successMessage: "User deleted successfully",
-    },
-  });
-  const restorer = useDataAction({
-    action: "restore",
-    notificationMessages: {
-      successMessage: "User restored successfully",
-    },
-  });
+  const { updater, deleter, restorer } = Actions();
 
   const deleteUser = async (userId: string) => {
     const formData = new FormData();

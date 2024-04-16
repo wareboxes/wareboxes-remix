@@ -7,51 +7,41 @@ import {
   useMantineReactTable,
   type MRT_ColumnDef,
 } from "mantine-react-table";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { ClientOnly } from "remix-utils/client-only";
 import { EditModal } from "~/components/Table/EditModal";
 import { RowActions } from "~/components/Table/RowActions";
-import { useDataAction } from "~/utils/hooks/useDataAction";
 import { SelectRole as Role } from "~/utils/types/db/users";
+import { Actions } from "./Actions";
 import { action, loader } from "./route.server";
 
 export { action, loader };
 
 export default function AdminRoles() {
   const { roles } = useLoaderData<{ roles: Role[] }>();
-  const deleter = useDataAction({
-    action: "delete",
-    notificationMessages: {
-      successMessage: "Role deleted successfully",
-    },
-  });
-  const updater = useDataAction({
-    action: "update",
-    notificationMessages: {
-      successMessage: "Role updated successfully",
-    },
-  });
-  const restorer = useDataAction({
-    action: "restore",
-    notificationMessages: {
-      successMessage: "Role restored successfully",
-    },
-  });
+  const { updater, deleter, restorer } = Actions();
 
-  const deleteRole = async (roleId: string) => {
-    const formData = new FormData();
-    formData.append("roleId", roleId);
-    deleter.performAction(formData);
-  };
+  const deleteRole = useCallback(
+    async (roleId: string) => {
+      const formData = new FormData();
+      formData.append("roleId", roleId);
+      deleter.performAction(formData);
+    },
+    [deleter]
+  );
 
-  const restoreRole = async (roleId: number) => {
-    const formData = new FormData();
-    formData.append("roleId", roleId.toString());
-    restorer.performAction(formData);
-  };
+  const restoreRole = useCallback(
+    async (roleId: number) => {
+      const formData = new FormData();
+      formData.append("roleId", roleId.toString());
+      restorer.performAction(formData);
+    },
+    [restorer]
+  );
 
   const updateRole: MRT_TableOptions<Role>["onEditingRowSave"] = async ({
     values,
+    table,
   }) => {
     const formData = new FormData();
     formData.append("roleId", values.id);
@@ -73,12 +63,12 @@ export default function AdminRoles() {
       {
         header: "Name",
         accessorKey: "name",
-        enableEditing: (row) => row.original.description !== "Self role"
+        enableEditing: (row) => row.original.description !== "Self role",
       },
       {
         header: "Description",
         accessorKey: "description",
-        enableEditing: (row) => row.original.description !== "Self role"
+        enableEditing: (row) => row.original.description !== "Self role",
       },
       {
         header: "Child Roles",
@@ -162,5 +152,9 @@ export default function AdminRoles() {
     },
   });
 
-  return <MantineReactTable table={table} />;
+  return (
+    <>
+      <MantineReactTable table={table} />
+    </>
+  );
 }
