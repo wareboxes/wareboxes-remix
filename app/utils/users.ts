@@ -3,8 +3,6 @@ import { z } from "zod";
 import { db } from "./db";
 import { addDevAdmin, addRoleAndUserRole } from "./permissions";
 import {
-  permissions,
-  rolePermissions,
   roles,
   userRoles,
   users,
@@ -143,7 +141,56 @@ export const getUser = async (
       email: users.email,
       nickName: users.nickName,
       phone: users.phone,
-      roles: sql`json_agg(json_build_object('id', ${roles.id}, 'name', ${roles.name}, 'description', ${roles.description}))`,
+      userRoles: sql<Role[]>`
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', ${roles.id},
+              'name', ${roles.name},
+              'description', ${roles.description},
+              'created', ${roles.created},
+              'deleted', ${roles.deleted},
+              'parentId', ${roles.parentId}
+            )
+          ),
+          '[]'
+        )
+      `,
+      userPermissions: sql<Permissions[]>`
+        (
+          WITH RECURSIVE RoleHierarchy AS (
+            SELECT r.id, r.parent_id
+            FROM wareboxes.user_roles ur
+            INNER JOIN wareboxes.roles r ON r.id = ur.role_id
+            WHERE ur.user_id = ${users.id}
+            UNION ALL
+            SELECT r.id, r.parent_id
+            FROM wareboxes.roles r
+            INNER JOIN RoleHierarchy rh ON rh.id = r.parent_id
+          ),
+          DistinctPermissions AS (
+            SELECT DISTINCT p.id, p.name, p.description, p.created, p.deleted
+            FROM wareboxes.permissions p
+            INNER JOIN wareboxes.role_permissions rp ON rp.permission_id = p.id
+            INNER JOIN RoleHierarchy rh ON rh.id = rp.role_id
+            WHERE p.deleted IS NULL
+            AND rp.deleted IS NULL
+          )
+          SELECT COALESCE(
+            (
+              SELECT json_agg(json_build_object(
+                'id', dp.id,
+                'name', UPPER(dp.name),
+                'description', dp.description,
+                'created', dp.created,
+                'deleted', dp.deleted
+              ))
+              FROM DistinctPermissions dp
+            ),
+            '[]'::json
+          ) AS userPermissions
+        ) AS userPermissions
+      `,
     })
     .from(users)
     .leftJoin(userRoles, eq(userRoles.userId, users.id))
@@ -156,14 +203,13 @@ export const getUser = async (
       return and(...conditions);
     })
     .groupBy(users.id);
-
   await addDevAdmin(res[0].email);
 
   return res[0];
 };
 
 export const getUsers = async (showDeleted = false): Promise<User[]> => {
-  const res = db
+  const res = await db
     .select({
       id: users.id,
       created: users.created,
@@ -189,18 +235,39 @@ export const getUsers = async (showDeleted = false): Promise<User[]> => {
         )
       `,
       userPermissions: sql<Permissions[]>`
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'id', ${permissions.id},
-              'name', ${permissions.name},
-              'description', ${permissions.description},
-              'created', ${permissions.created},
-              'deleted', ${permissions.deleted}
-            )
-          ) FILTER (WHERE ${permissions.id} IS NOT NULL),
-          '[]'
-        )
+        (
+          WITH RECURSIVE RoleHierarchy AS (
+            SELECT r.id, r.parent_id
+            FROM wareboxes.user_roles ur
+            INNER JOIN wareboxes.roles r ON r.id = ur.role_id
+            WHERE ur.user_id = ${users.id}
+            UNION ALL
+            SELECT r.id, r.parent_id
+            FROM wareboxes.roles r
+            INNER JOIN RoleHierarchy rh ON rh.id = r.parent_id
+          ),
+          DistinctPermissions AS (
+            SELECT DISTINCT p.id, p.name, p.description, p.created, p.deleted
+            FROM wareboxes.permissions p
+            INNER JOIN wareboxes.role_permissions rp ON rp.permission_id = p.id
+            INNER JOIN RoleHierarchy rh ON rh.id = rp.role_id
+            WHERE p.deleted IS NULL
+            AND rp.deleted IS NULL
+          )
+          SELECT COALESCE(
+            (
+              SELECT json_agg(json_build_object(
+                'id', dp.id,
+                'name', UPPER(dp.name),
+                'description', dp.description,
+                'created', dp.created,
+                'deleted', dp.deleted
+              ))
+              FROM DistinctPermissions dp
+            ),
+            '[]'::json
+          ) AS userPermissions
+        ) AS userPermissions
       `,
     })
     .from(users)
@@ -209,24 +276,15 @@ export const getUsers = async (showDeleted = false): Promise<User[]> => {
       and(eq(userRoles.userId, users.id), isNull(userRoles.deleted))
     )
     .leftJoin(roles, and(eq(roles.id, userRoles.roleId), isNull(roles.deleted)))
-    .leftJoin(
-      rolePermissions,
-      and(eq(rolePermissions.roleId, roles.id), isNull(rolePermissions.deleted))
-    )
-    .leftJoin(
-      permissions,
-      and(
-        eq(permissions.id, rolePermissions.permissionId),
-        isNull(permissions.deleted)
-      )
-    )
-    .$dynamic();
-
-  if (!showDeleted) {
-    res.where(isNull(sql`users.deleted`));
-  }
-  res.groupBy(users.id);
-  return await res;
+    .where(() => {
+      const conditions = [];
+      if (!showDeleted) {
+        conditions.push(isNull(users.deleted));
+      }
+      return and(...conditions);
+    })
+    .groupBy(users.id);
+  return res;
 };
 
 export const UserUpdateSchema = z.object({

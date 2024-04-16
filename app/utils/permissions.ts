@@ -1,5 +1,6 @@
 import { and, desc, eq, isNull, ne, sql } from "drizzle-orm";
 import { z } from "zod";
+import { SessionUser, auth } from "./auth";
 import { db } from "./db";
 import {
   permissions,
@@ -273,7 +274,7 @@ export const getRolePermissions = async (
   return res;
 };
 
-export const getUserPermissionsBack = async (
+export const getUserPermissions = async (
   userId: number
 ): Promise<Permission[]> => {
   const res: Permission[] = await db.execute(sql<Permission[]>`
@@ -293,7 +294,8 @@ export const getUserPermissionsBack = async (
     FROM wareboxes.permissions p
     INNER JOIN wareboxes.role_permissions rp ON rp.permission_id = p.id
     INNER JOIN RoleHierarchy rh ON rh.id = rp.role_id
-    WHERE p.deleted IS NULL;
+    WHERE p.deleted IS NULL
+    AND rp.deleted IS NULL;
   `);
 
   return res;
@@ -348,16 +350,18 @@ export const addRoleAndUserRole = async (
 };
 
 export const userHasPermission = async (
-  user: User | null,
+  user: User | Partial<SessionUser>,
   permissionName: string
 ): Promise<boolean> => {
   try {
-    if (!user) return false;
+    if (!user.id || !user.email) {
+      return false;
+    }
     const userRoles = await getUserRoles(user.id);
     if (!userRoles.some((r) => r.name === user?.email)) {
       await addRoleAndUserRole(user.id, user.email);
     }
-    const userPermissions = await getUserPermissionsBack(user.id);
+    const userPermissions = await getUserPermissions(user.id);
     return userPermissions.some(
       (p) => p.name.toUpperCase() === permissionName.toUpperCase()
     );
@@ -367,11 +371,13 @@ export const userHasPermission = async (
 };
 
 export const userHasAnyPermission = async (
-  user: User | null,
+  user: User | Partial<SessionUser>,
   permissionNames: string[]
 ): Promise<boolean> => {
-  if (!user) return false;
-  const userPermissions = await getUserPermissionsBack(user.id);
+  if (!user.id) {
+    return false;
+  }
+  const userPermissions = await getUserPermissions(user.id);
   return permissionNames.some((permission) =>
     userPermissions.some(
       (userPermission) =>
@@ -391,7 +397,7 @@ export const getPermissionStatus = async (
     }, {} as { [key: string]: boolean });
   }
 
-  const userPermissions = await getUserPermissionsBack(user.id);
+  const userPermissions = await getUserPermissions(user.id);
 
   return permissionNames.reduce((permissionsMap, permission) => {
     permissionsMap[permission] = userPermissions.some(
@@ -437,56 +443,26 @@ export const AddDeleteUserRoleSchema = z.object({
   roleId: z.number({ coerce: true }).positive("Invalid role ID"),
 });
 
-// export const withAuth = (
-//   permissionName: string | string[],
-//   handler: RequestHandler
-// ): RequestHandler => {
-//   return async (event: RequestEvent) => {
-//     // Unless we define our own RequestEvent containing a user property, we need to cast event.locals to any
-//     const user = (event.locals as unknown as { user: any }).user;
-//     const hasPermission = Array.isArray(permissionName)
-//       ? await userHasAnyPermission(user, permissionName)
-//       : await userHasPermission(user, permissionName);
-//     if (!hasPermission) {
-//       return new Response(
-//         JSON.stringify({ success: false, error: "Unauthorized" }),
-//         {
-//           headers: { "Content-Type": "application/json" },
-//         }
-//       );
-//     }
-//     return handler(event);
-//   };
-// };
+const getRequestUser = async (request: Request) => {
+  const user = await auth.isAuthenticated(request);
+  return user;
+};
 
-// export const withAuthLoad = (
-//   permissionName: string | string[],
-//   loadFunction: PageServerLoad | LayoutServerLoad
-// ): PageServerLoad | LayoutServerLoad => {
-//   return async (event: any) => {
-//     const user = (event.locals as unknown as { user: any }).user;
-//     const hasPermission = Array.isArray(permissionName)
-//       ? await userHasAnyPermission(user, permissionName)
-//       : await userHasPermission(user, permissionName);
-//     if (!hasPermission) {
-//       return { success: false, error: "Unauthorized" };
-//     }
-//     return loadFunction(event);
-//   };
-// };
+export const withAuth = async (
+  permissionName: string | string[],
+  request: Request,
+) => {
+  const user = await getRequestUser(request);
+  if (!user) {
+    throw new Response("Unauthorized", { status: 401 })
+  }
 
-// export const withAuthAction = (
-//   permissionName: string,
-//   action: Action
-// ): Action => {
-//   return async (request) => {
-//     const user = (request.locals as unknown as { user: any }).user;
-//     const hasPermission = Array.isArray(permissionName)
-//       ? await userHasAnyPermission(user, permissionName)
-//       : await userHasPermission(user, permissionName);
-//     if (!hasPermission) {
-//       return { success: false, error: "Unauthorized" };
-//     }
-//     return action(request);
-//   };
-// };
+  const hasPermission = Array.isArray(permissionName)
+    ? await userHasAnyPermission(user, permissionName)
+    : await userHasPermission(user, permissionName);
+
+  if (!hasPermission) {
+    throw new Response("Unauthorized", { status: 401 });
+  }
+
+};
