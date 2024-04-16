@@ -1,4 +1,4 @@
-import { ActionFunctionArgs, json } from "@remix-run/node";
+import { ActionFunctionArgs, LoaderFunctionArgs, json } from "@remix-run/node";
 import {
   DeleteRestoreRoleSchema,
   UpdateRoleSchema,
@@ -6,10 +6,12 @@ import {
   getRoles,
   restoreRole,
   updateRole,
+  withAuth,
 } from "~/utils/permissions";
 import { actionResponse } from "~/utils/types/actions";
 
-export async function loader() {
+export async function loader({ request }: LoaderFunctionArgs) {
+  await withAuth('admin', request);
   return {
     roles: await getRoles(true, true),
   };

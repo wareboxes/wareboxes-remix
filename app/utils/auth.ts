@@ -6,6 +6,8 @@ import { addUser } from "./users";
 
 const env = process.env;
 
+export type SessionUser = Partial<Auth0Profile> & User;
+
 const sessionStorage = createCookieSessionStorage({
   cookie: {
     name: "__session",
@@ -16,12 +18,12 @@ const sessionStorage = createCookieSessionStorage({
   },
 });
 
-export const auth = new Authenticator<Partial<Auth0Profile & User>>(
+export const auth = new Authenticator<Partial<SessionUser>>(
   sessionStorage,
   { throwOnError: true }
 );
 
-const auth0Strategy = new Auth0Strategy<Partial<Auth0Profile> & User>(
+const auth0Strategy = new Auth0Strategy<SessionUser>(
   {
     callbackURL: env.AUTH0_RETURN_TO ?? "",
     clientID: env.AUTH0_CLIENT_ID ?? "",
@@ -36,7 +38,7 @@ const auth0Strategy = new Auth0Strategy<Partial<Auth0Profile> & User>(
     if (!user) {
       throw new Error("Failed to create or retrieve user");
     }
-    return { ...profile, ...user } as Partial<Auth0Profile> & User;
+    return { ...profile, ...user } as SessionUser;
   }
 );
 

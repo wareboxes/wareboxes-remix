@@ -67,6 +67,7 @@ const env = process.env;
 const queryClient = postgres(
   `postgres://${env.PGUSER}:${env.PGPASSWORD}@${env.PGHOST}:${env.PGPORT}/${env.PGDATABASE}`
 );
+
 export const db = drizzle(queryClient, {
   schema: {
     ...baseSchema,

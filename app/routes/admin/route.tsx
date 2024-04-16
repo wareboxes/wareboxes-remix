@@ -1,7 +1,21 @@
 import { Tabs } from "@mantine/core";
-import { Link, Outlet, useMatches } from "@remix-run/react";
+import { LoaderFunctionArgs } from "@remix-run/node";
+import { Link, Outlet, redirect, useMatches } from "@remix-run/react";
+import { withAuth } from "~/utils/permissions";
 
-export default function UserManagement() {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  await withAuth('admin', request);
+  const url = new URL(request.url);
+  const pathname = url.pathname;
+
+  if (pathname.endsWith('/admin')) {
+    return redirect('/admin/users');
+  }
+  return null;
+};
+
+
+export default function Admin() {
   const matches = useMatches();
   const currentTab = matches[matches.length - 1].pathname.split("/").pop();
 
