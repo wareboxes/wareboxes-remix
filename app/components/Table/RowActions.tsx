@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ActionIcon, Flex, Loader, Tooltip } from "@mantine/core";
+import { ActionIcon, Flex, Input, Loader, Tooltip } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { IconEdit, IconRestore, IconTrash } from "@tabler/icons-react";
 import { MRT_Row, MRT_TableInstance } from "mantine-react-table";
@@ -8,26 +8,29 @@ import { useDataAction } from "~/utils/hooks/useDataAction";
 interface RowActionsProps<T extends Record<string, any>> {
   row: MRT_Row<T>;
   table: MRT_TableInstance<T>;
-  onDelete: (id: string) => Promise<void>;
-  onRestore: (id: string) => Promise<void>;
+  tableId: string;
+  actions: {
+    delete: string;
+    restore: string;
+  };
   getDeleteConfirmMessage: (row: MRT_Row<T>) => React.ReactNode;
 }
 
 export function RowActions<T extends Record<string, any>>({
   row,
   table,
-  onDelete,
-  onRestore,
+  tableId,
+  actions,
   getDeleteConfirmMessage,
 }: RowActionsProps<T>) {
   const deleter = useDataAction({
-    action: "delete",
+    dataAction: actions.delete,
     notificationMessages: {
       successMessage: "Item deleted successfully",
     },
   });
   const restorer = useDataAction({
-    action: "restore",
+    dataAction: actions.restore,
     notificationMessages: {
       successMessage: "Item restored successfully",
     },
@@ -36,14 +39,15 @@ export function RowActions<T extends Record<string, any>>({
   const isDeleted = row.original.deleted;
   const isSelfRole = row.original.description === "Self role";
 
-  const openDeleteConfirmModal = (row: MRT_Row<T>) =>
+  const openDeleteConfirmModal = (formData: FormData) => {
     modals.openConfirmModal({
-      title: "Are you sure you want to delete this item?",
+      title: "Confirm item deletion",
       children: getDeleteConfirmMessage(row),
       labels: { confirm: "Delete", cancel: "Cancel" },
       confirmProps: { color: "red" },
-      onConfirm: () => onDelete(row.original.id.toString()),
+      onConfirm: () => deleter.submit(formData),
     });
+  };
 
   return (
     <Flex gap="md">
@@ -58,25 +62,39 @@ export function RowActions<T extends Record<string, any>>({
       </Tooltip>
       {isDeleted ? (
         <Tooltip label="Restore">
-          <ActionIcon
-            variant="outline"
-            color="green"
-            onClick={() => onRestore(row.original.id.toString())}
-            disabled={restorer.loading}
-          >
-            {restorer.loading ? <Loader /> : <IconRestore />}
-          </ActionIcon>
+          <restorer.Form method="POST">
+            <Input type="hidden" name="action" value={actions.restore} />
+            <Input type="hidden" name={tableId} value={row.original.id} />
+            <ActionIcon
+              variant="outline"
+              color="green"
+              disabled={restorer.submitting}
+              type="submit"
+            >
+              {restorer.submitting ? <Loader /> : <IconRestore />}
+            </ActionIcon>
+          </restorer.Form>
         </Tooltip>
       ) : (
         <Tooltip label={isSelfRole ? "Cannot delete self role" : "Delete"}>
-          <ActionIcon
-            variant="outline"
-            color="red"
-            onClick={() => openDeleteConfirmModal(row)}
-            disabled={deleter.loading || isSelfRole}
+          <deleter.Form
+            method="POST"
+            onSubmit={(e) => {
+              e.preventDefault();
+              openDeleteConfirmModal(new FormData(e.currentTarget));
+            }}
           >
-            {deleter.loading ? <Loader /> : <IconTrash />}
-          </ActionIcon>
+            <Input type="hidden" name="action" value={actions.delete} />
+            <Input type="hidden" name={tableId} value={row.original.id} />
+            <ActionIcon
+              variant="outline"
+              color="red"
+              disabled={deleter.submitting || isSelfRole}
+              type="submit"
+            >
+              {deleter.submitting ? <Loader /> : <IconTrash />}
+            </ActionIcon>
+          </deleter.Form>
         </Tooltip>
       )}
     </Flex>

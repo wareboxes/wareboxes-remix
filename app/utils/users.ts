@@ -163,10 +163,13 @@ export const getUser = async (
             FROM wareboxes.user_roles ur
             INNER JOIN wareboxes.roles r ON r.id = ur.role_id
             WHERE ur.user_id = ${users.id}
+            AND ur.deleted IS NULL
+            AND r.deleted IS NULL
             UNION ALL
             SELECT r.id, r.parent_id
             FROM wareboxes.roles r
             INNER JOIN RoleHierarchy rh ON rh.id = r.parent_id
+            WHERE r.deleted IS NULL
           ),
           DistinctPermissions AS (
             SELECT DISTINCT p.id, p.name, p.description, p.created, p.deleted
@@ -178,13 +181,15 @@ export const getUser = async (
           )
           SELECT COALESCE(
             (
-              SELECT json_agg(json_build_object(
-                'id', dp.id,
-                'name', UPPER(dp.name),
-                'description', dp.description,
-                'created', dp.created,
-                'deleted', dp.deleted
-              ))
+              SELECT json_agg(
+                json_build_object(
+                  'id', dp.id,
+                  'name', UPPER(dp.name),
+                  'description', dp.description,
+                  'created', dp.created,
+                  'deleted', dp.deleted
+                )
+              )
               FROM DistinctPermissions dp
             ),
             '[]'::json
@@ -197,6 +202,7 @@ export const getUser = async (
     .leftJoin(roles, eq(roles.id, userRoles.roleId))
     .where(() => {
       const conditions = [eq(users[key], value)];
+      conditions.push(isNull(userRoles.deleted));
       if (!deleted) {
         conditions.push(isNull(users.deleted));
       }

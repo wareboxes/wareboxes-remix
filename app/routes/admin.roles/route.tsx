@@ -1,43 +1,30 @@
-import { Loader, Text } from "@mantine/core";
+import { Button, Loader, Text } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { useLoaderData } from "@remix-run/react";
 import {
   MRT_Cell,
+  MRT_Row,
   MRT_TableOptions,
   MantineReactTable,
   useMantineReactTable,
   type MRT_ColumnDef,
 } from "mantine-react-table";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ClientOnly } from "remix-utils/client-only";
 import { EditModal } from "~/components/Table/EditModal";
 import { RowActions } from "~/components/Table/RowActions";
 import { SelectRole as Role } from "~/utils/types/db/users";
 import { Actions } from "./Actions";
+import { ChildRolesModal } from "./ChildRolesModal";
 import { action, loader } from "./route.server";
 
 export { action, loader };
 
 export default function AdminRoles() {
+  const [opened, { open, close }] = useDisclosure();
+  const [selectedRow, setSelectedRow] = useState<Pick<Role, "id"> | null>(null);
   const { roles } = useLoaderData<{ roles: Role[] }>();
-  const { updater, deleter, restorer } = Actions();
-
-  const deleteRole = useCallback(
-    async (roleId: string) => {
-      const formData = new FormData();
-      formData.append("roleId", roleId);
-      deleter.performAction(formData);
-    },
-    [deleter]
-  );
-
-  const restoreRole = useCallback(
-    async (roleId: number) => {
-      const formData = new FormData();
-      formData.append("roleId", roleId.toString());
-      restorer.performAction(formData);
-    },
-    [restorer]
-  );
+  const { updater } = Actions();
 
   const updateRole: MRT_TableOptions<Role>["onEditingRowSave"] = async ({
     values,
@@ -48,9 +35,17 @@ export default function AdminRoles() {
     Object.entries(values).forEach(([key, value]) => {
       if (value != null) formData.append(key, value.toString());
     });
-    updater.performAction(formData);
+    updater.submit(formData);
     table.setEditingRow(null);
   };
+
+  const openChildRolesModal = useCallback(
+    (row: MRT_Row<Role>) => {
+      open();
+      setSelectedRow({ id: row.original.id });
+    },
+    [setSelectedRow, open]
+  );
 
   const columns = useMemo<MRT_ColumnDef<Role>[]>(
     () => [
@@ -74,7 +69,12 @@ export default function AdminRoles() {
         header: "Child Roles",
         accessorKey: "roles",
         enableEditing: false,
+        enableSorting: false,
+        enableColumnActions: false,
         Edit: () => null,
+        Cell: ({ row }: { row: MRT_Row<Role> }) => (
+          <Button onClick={() => openChildRolesModal(row)}>Roles</Button>
+        ),
       },
       {
         header: "Created",
@@ -107,7 +107,7 @@ export default function AdminRoles() {
         Edit: () => null,
       },
     ],
-    []
+    [openChildRolesModal]
   );
 
   const table = useMantineReactTable({
@@ -132,8 +132,8 @@ export default function AdminRoles() {
       <RowActions
         row={row}
         table={table}
-        onDelete={(id) => deleteRole(id)}
-        onRestore={(id) => restoreRole(Number(id))}
+        tableId="roleId"
+        actions={{ delete: 'roleDelete', restore: 'roleRestore' }}
         getDeleteConfirmMessage={(row) => (
           <Text>Are you sure you want to delete {row.original.name}?</Text>
         )}
@@ -154,6 +154,12 @@ export default function AdminRoles() {
 
   return (
     <>
+      <ChildRolesModal
+        opened={opened}
+        close={close}
+        roles={roles}
+        row={roles.find((role) => role.id === selectedRow?.id) || null}
+      />
       <MantineReactTable table={table} />
     </>
   );

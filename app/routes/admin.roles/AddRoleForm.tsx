@@ -5,23 +5,25 @@ import {
   Loader,
   Select,
   Stack,
-  Text,
+  Text
 } from "@mantine/core";
 import { useState } from "react";
 import { useDataAction } from "~/utils/hooks/useDataAction";
-import { SelectRole as Role, SelectUser as User } from "~/utils/types/db/users";
-import { UserActions } from "./Actions";
+import { SelectRole as Role } from "~/utils/types/db/users";
+import { RoleActions } from "./Actions";
 
 interface Props {
-  navState: string;
-  row: User | null;
+  row: Role | null;
   filteredRoles: Role[];
 }
 
-export function AddRoleForm({ row, filteredRoles }: Props) {
+export function AddRoleForm({
+  row,
+  filteredRoles,
+}: Props) {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const adder = useDataAction({
-    dataAction: UserActions.AddUserRole,
+    dataAction: RoleActions.AddChildRole,
     notificationMessages: {
       successMessage: "User role added successfully",
     },
@@ -34,8 +36,8 @@ export function AddRoleForm({ row, filteredRoles }: Props) {
         setSelectedRole(null);
       }}
     >
-      <Input type="hidden" name="action" value={UserActions.AddUserRole} required />
-      <Input type="hidden" name="userId" value={row?.id} required />
+      <Input type="hidden" name="action" value={RoleActions.AddChildRole} required />
+      <Input type="hidden" name="roleId" value={row?.id} required />
       {adder.data?.error && (
         <Center>
           <Stack gap="xs">
@@ -45,7 +47,7 @@ export function AddRoleForm({ row, filteredRoles }: Props) {
       )}
       <Select
         allowDeselect={false}
-        name="roleId"
+        name="childRoleId"
         data={filteredRoles.map((role) => ({
           value: role.id.toString(),
           label: role.name,

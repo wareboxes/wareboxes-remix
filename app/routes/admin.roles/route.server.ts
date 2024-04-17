@@ -1,14 +1,18 @@
 import { ActionFunctionArgs, LoaderFunctionArgs, json } from "@remix-run/node";
 import {
+  AddDeleteChildRoleSchema,
   DeleteRestoreRoleSchema,
   UpdateRoleSchema,
+  addRoleRelationship,
   deleteRole,
+  deleteRoleRelationship,
   getRoles,
   restoreRole,
   updateRole,
   withAuth,
 } from "~/utils/permissions";
 import { actionResponse } from "~/utils/types/actions";
+import { RoleActions } from "./Actions";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   await withAuth('admin', request);
@@ -19,24 +23,25 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
-  const intent = formData.get("intent");
+  const action = formData.get("action");
 
-  switch (intent) {
-    case "update": {
-      return await handleUpdate(formData);
-    }
-    case "delete": {
-      return await handleDelete(formData);
-    }
-    case "restore": {
-      return await handleRestore(formData);
-    }
+  switch (action) {
+    case RoleActions.UpdateRole:
+      return handleUpdateRole(formData);
+    case RoleActions.DeleteRole:
+      return handleDeleteRole(formData);
+    case RoleActions.RestoreRole:
+      return handleRestoreRole(formData);
+    case RoleActions.AddChildRole:
+      return handleAddChildRole(formData);
+    case RoleActions.DeleteChildRole:
+      return handleDeleteChildRole(formData);
     default:
-      return json(actionResponse(false, "Invalid intent"));
+      return json(actionResponse(false, "Invalid action"));
   }
 }
 
-async function handleUpdate(formData: FormData) {
+async function handleUpdateRole(formData: FormData) {
   const result = UpdateRoleSchema.safeParse(Object.fromEntries(formData));
 
   if (!result.success) {
@@ -50,7 +55,7 @@ async function handleUpdate(formData: FormData) {
   return json(actionResponse(res));
 }
 
-async function handleDelete(formData: FormData) {
+async function handleDeleteRole(formData: FormData) {
   const result = DeleteRestoreRoleSchema.safeParse(
     Object.fromEntries(formData)
   );
@@ -66,7 +71,7 @@ async function handleDelete(formData: FormData) {
   return json(actionResponse(res));
 }
 
-async function handleRestore(formData: FormData) {
+async function handleRestoreRole(formData: FormData) {
   const result = DeleteRestoreRoleSchema.safeParse(
     Object.fromEntries(formData)
   );
@@ -79,5 +84,37 @@ async function handleRestore(formData: FormData) {
 
   const { roleId } = result.data;
   const res = await restoreRole(Number(roleId));
+  return json(actionResponse(res));
+}
+
+async function handleAddChildRole(formData: FormData) {
+  const result = AddDeleteChildRoleSchema.safeParse(
+    Object.fromEntries(formData)
+  );
+
+  if (!result.success) {
+    return json(
+      actionResponse(false, "Invalid role id", result.error.flatten())
+    );
+  }
+
+  const { roleId, childRoleId } = result.data;
+  const res = await addRoleRelationship(Number(roleId), Number(childRoleId));
+  return json(actionResponse(res));
+}
+
+async function handleDeleteChildRole(formData: FormData) {
+  const result = AddDeleteChildRoleSchema.safeParse(
+    Object.fromEntries(formData)
+  );
+
+  if (!result.success) {
+    return json(
+      actionResponse(false, "Invalid role id", result.error.flatten())
+    );
+  }
+
+  const { roleId, childRoleId } = result.data;
+  const res = await deleteRoleRelationship(Number(roleId), Number(childRoleId));
   return json(actionResponse(res));
 }

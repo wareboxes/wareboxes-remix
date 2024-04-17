@@ -18,5 +18,5 @@ export default function useNavigationProgress() {
 
     handleStateChange(navigation.state);
     return () => nprogress.complete();
-  }, [navigation]);
+  }, [navigation.state]);
 }

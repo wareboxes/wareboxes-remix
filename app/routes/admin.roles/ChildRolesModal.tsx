@@ -1,13 +1,12 @@
 import { ActionIcon, Center, Input, Modal, Space, Table } from "@mantine/core";
-import { useNavigation } from "@remix-run/react";
 import { IconTrash } from "@tabler/icons-react";
 import { useMemo } from "react";
 import { useDataAction } from "~/utils/hooks/useDataAction";
-import { SelectRole as Role, SelectUser as User } from "~/utils/types/db/users";
+import { SelectRole as Role } from "~/utils/types/db/users";
 import { AddRoleForm } from "./AddRoleForm";
-import { UserActions } from "./Actions";
+import { RoleActions } from "./Actions";
 
-export function RolesModal({
+export function ChildRolesModal({
   opened,
   close,
   roles,
@@ -16,23 +15,25 @@ export function RolesModal({
   opened: boolean;
   close: () => void;
   roles: Role[];
-  row: User | null;
+  row: Role | null;
 }) {
-  const { state: navState } = useNavigation();
   const deleter = useDataAction({
-    dataAction: UserActions.DeleteUserRole,
+    dataAction: RoleActions.DeleteChildRole,
     notificationMessages: {
-      successMessage: "User role deleted successfully",
+      successMessage: "Role deleted successfully",
     },
   });
 
   const filteredRoles = useMemo(
     () =>
       roles.filter((role) => {
-        // If self role or user already has role, do not show in list
+        // If role already has child role or parent role, do not show in list
         if (
+          role.id === row?.id ||
           role.description === "Self role" ||
-          row?.userRoles?.some((r) => r.id === role.id)
+          role.parentRoles?.length ||
+          row?.childRoles?.some((r) => r.id === role.id) ||
+          row?.parentRoles?.some((r) => r.id === role.id)
         ) {
           return false;
         }
@@ -42,18 +43,14 @@ export function RolesModal({
   );
 
   return (
-    <Modal opened={opened} onClose={close} title={`Roles - ${row?.email}`}>
+    <Modal opened={opened} onClose={close} title={`Child Roles - ${row?.name}`}>
       {filteredRoles?.length > 0 && (
         <Center>
-          <AddRoleForm
-            navState={navState}
-            row={row}
-            filteredRoles={filteredRoles}
-          />
+          <AddRoleForm row={row} filteredRoles={filteredRoles} />
           <Space h="md" />
         </Center>
       )}
-      {row?.userRoles?.length ? (
+      {row?.childRoles?.length ? (
         <Table striped>
           <Table.Thead>
             <Table.Tr>
@@ -63,29 +60,28 @@ export function RolesModal({
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {row.userRoles.map((role) => (
+            {row.childRoles.map((role) => (
               <Table.Tr key={role.id}>
                 <Table.Td>
-                  {(role.description !== "Self role" ||
-                    role.name !== row.email) && (
-                    <deleter.Form method="POST">
-                      <Input
-                        type="hidden"
-                        name="action"
-                        value={UserActions.DeleteUserRole}
-                      />
-                      <Input type="hidden" name="userId" value={row.id} />
-                      <Input type="hidden" name="roleId" value={role.id} />
+                  <deleter.Form method="POST">
+                    <Input
+                      type="hidden"
+                      name="action"
+                      value={RoleActions.DeleteChildRole}
+                    />
+                    <Input type="hidden" name="roleId" value={row.id} />
+                    <Input type="hidden" name="childRoleId" value={role.id} />
+                    {role.parentId === row.id && (
                       <ActionIcon
                         variant="outline"
                         color="red"
-                        disabled={deleter.loading}
+                        disabled={deleter.submitting}
                         type="submit"
                       >
                         <IconTrash />
                       </ActionIcon>
-                    </deleter.Form>
-                  )}
+                    )}
+                  </deleter.Form>
                 </Table.Td>
                 <Table.Td>{role.name}</Table.Td>
                 <Table.Td>{role.description}</Table.Td>
@@ -94,7 +90,7 @@ export function RolesModal({
           </Table.Tbody>
         </Table>
       ) : (
-        <Center>No roles assigned</Center>
+        <Center>No child roles</Center>
       )}
     </Modal>
   );

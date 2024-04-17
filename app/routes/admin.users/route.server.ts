@@ -15,6 +15,7 @@ import {
   restoreUser,
   updateUser,
 } from "~/utils/users";
+import { UserActions } from "./Actions";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   await withAuth("admin", request);
@@ -26,30 +27,25 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
-  const intent = formData.get("intent");
+  const action = formData.get("action");
 
-  switch (intent) {
-    case "update": {
-      return await handleUpdate(formData);
-    }
-    case "delete": {
-      return await handleDelete(formData);
-    }
-    case "restore": {
-      return await handleRestore(formData);
-    }
-    case "addUserRole": {
-      return await handleAddUserRole(formData);
-    }
-    case "deleteUserRole": {
-      return await handleDeleteUserRole(formData);
-    }
+  switch (action) {
+    case UserActions.UpdateUser:
+      return handleUpdateUser(formData);
+    case UserActions.DeleteUser:
+      return handleDeleteUser(formData);
+    case UserActions.RestoreUser:
+      return handleRestoreUser(formData);
+    case UserActions.AddUserRole:
+      return handleAddUserRole(formData);
+    case UserActions.DeleteUserRole:
+      return handleDeleteUserRole(formData);
     default:
-      return json(actionResponse(false, "Invalid intent"));
+      return json(actionResponse(false, "Invalid action"));
   }
 }
 
-async function handleUpdate(formData: FormData) {
+async function handleUpdateUser(formData: FormData) {
   const result = UserUpdateSchema.safeParse(Object.fromEntries(formData));
 
   if (!result.success) {
@@ -63,7 +59,7 @@ async function handleUpdate(formData: FormData) {
   return json(actionResponse(res));
 }
 
-async function handleDelete(formData: FormData) {
+async function handleDeleteUser(formData: FormData) {
   const result = DeleteRestoreUserSchema.safeParse(
     Object.fromEntries(formData)
   );
@@ -79,7 +75,7 @@ async function handleDelete(formData: FormData) {
   return json(actionResponse(res));
 }
 
-async function handleRestore(formData: FormData) {
+async function handleRestoreUser(formData: FormData) {
   const result = DeleteRestoreUserSchema.safeParse(
     Object.fromEntries(formData)
   );
