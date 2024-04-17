@@ -24,7 +24,7 @@ export function RowActions<T extends Record<string, any>>({
   table,
   tableId,
   actions,
-  deleteModalTitle: deleteConfirmTitle = "Delete Item",
+  deleteModalTitle = "Delete Item",
   deleteConfirmComponent,
   canEditRow = () => {
     return { edit: true, reason: "Cannot edit row" };
@@ -52,7 +52,7 @@ export function RowActions<T extends Record<string, any>>({
 
   const openDeleteConfirmModal = (formData: FormData) => {
     modals.openConfirmModal({
-      title: deleteConfirmTitle,
+      title: deleteModalTitle,
       children: deleteConfirmComponent(row),
       labels: { confirm: "Delete", cancel: "Cancel" },
       confirmProps: { color: "red" },

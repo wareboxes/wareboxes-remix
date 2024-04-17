@@ -24,7 +24,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     <AppShell
       header={{ height: 48 }}
       navbar={{
-        width: width,
+        width: session ? width : 0,
         breakpoint: "xs",
         collapsed: { mobile: !navOpen, desktop: !navOpen },
       }}
