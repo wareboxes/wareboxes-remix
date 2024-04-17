@@ -6,6 +6,7 @@ import {
   pgEnum,
   serial,
   timestamp,
+  unique,
   varchar,
 } from "drizzle-orm/pg-core";
 import { accounts } from "./accounts";
@@ -31,7 +32,7 @@ export const pickWaves = wareboxes.table("pick_waves", {
 
 export const orders = wareboxes.table("orders", {
   id: serial("id").primaryKey().notNull(),
-  orderKey: varchar("order_key", { length: 255 }).notNull().unique(),
+  orderKey: varchar("order_key", { length: 255 }).notNull(),
   created: timestamp("created", { mode: "string" }).defaultNow().notNull(),
   deleted: timestamp("deleted", { mode: "string" }),
   rush: boolean("rush").default(false).notNull(),
@@ -42,7 +43,16 @@ export const orders = wareboxes.table("orders", {
   shipBy: date("ship_by"),
   waveId: integer("wave_id").references(() => pickWaves.id),
   accountId: integer("account_id").references(() => accounts.id),
-});
+},
+  (table) => {
+    return {
+      orderKeyAccountIdUnique: unique("order_key_account_id_unique").on(
+        table.orderKey,
+        table.accountId
+      ),
+    };
+  }
+);
 
 export const orderItems = wareboxes.table("order_items", {
   id: serial("id").primaryKey().notNull(),
