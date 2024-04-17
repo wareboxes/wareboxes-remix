@@ -202,6 +202,7 @@ export const getUser = async (
     .leftJoin(roles, eq(roles.id, userRoles.roleId))
     .where(() => {
       const conditions = [eq(users[key], value)];
+      conditions.push(isNull(userRoles.deleted));
       if (!deleted) {
         conditions.push(isNull(users.deleted));
       }

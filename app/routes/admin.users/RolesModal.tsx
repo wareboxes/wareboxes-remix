@@ -1,11 +1,11 @@
-import { ActionIcon, Center, Modal, Space, Table } from "@mantine/core";
-import { useActionData, useNavigation } from "@remix-run/react";
+import { ActionIcon, Center, Input, Modal, Space, Table } from "@mantine/core";
+import { useNavigation } from "@remix-run/react";
 import { IconTrash } from "@tabler/icons-react";
+import { useMemo } from "react";
+import { useDataAction } from "~/utils/hooks/useDataAction";
 import { SelectRole as Role, SelectUser as User } from "~/utils/types/db/users";
 import { AddRoleForm } from "./AddRoleForm";
-import { ActionResponse } from "~/utils/types/actions";
-import { useCallback } from "react";
-import { useDataAction } from "~/utils/hooks/useDataAction";
+import { UserActions } from "./Actions";
 
 export function RolesModal({
   opened,
@@ -18,48 +18,34 @@ export function RolesModal({
   roles: Role[];
   row: User | null;
 }) {
-  const actionData = useActionData<ActionResponse>();
   const { state: navState } = useNavigation();
-
-  const userRoleDeleter = useDataAction({
-    action: "deleteUserRole",
+  const deleter = useDataAction({
+    dataAction: UserActions.DeleteUserRole,
     notificationMessages: {
       successMessage: "User role deleted successfully",
     },
   });
 
-  const deleteUserRole = useCallback(
-    async (userId: string, roleId: string) => {
-      const formData = new FormData();
-      formData.append("intent", "deleteUserRole");
-      formData.append("userId", userId);
-      formData.append("roleId", roleId);
-      userRoleDeleter.performAction(formData);
-    },
-    [userRoleDeleter]
+  const filteredRoles = useMemo(
+    () =>
+      roles.filter((role) => {
+        // If self role or user already has role, do not show in list
+        if (
+          role.description === "Self role" ||
+          row?.userRoles?.some((r) => r.id === role.id)
+        ) {
+          return false;
+        }
+        return true;
+      }),
+    [roles, row]
   );
 
-  const filteredRoles = roles.filter((role) => {
-    // If self role or user already has role, do not show in list
-    if (
-      role.description === "Self role" ||
-      row?.userRoles?.some((r) => r.id === role.id)
-    ) {
-      return false;
-    }
-    return true;
-  });
-
   return (
-    <Modal
-      opened={opened}
-      onClose={close}
-      title={`Roles - ${row?.email}`}
-    >
+    <Modal opened={opened} onClose={close} title={`Roles - ${row?.email}`}>
       {filteredRoles?.length > 0 && (
         <Center>
           <AddRoleForm
-            actionData={actionData}
             navState={navState}
             row={row}
             filteredRoles={filteredRoles}
@@ -82,16 +68,23 @@ export function RolesModal({
                 <Table.Td>
                   {(role.description !== "Self role" ||
                     role.name !== row.email) && (
-                    <ActionIcon
-                      variant="outline"
-                      color="red"
-                      onClick={() =>
-                        deleteUserRole(row.id.toString(), role.id.toString())
-                      }
-                      disabled={userRoleDeleter.loading}
-                    >
-                      <IconTrash />
-                    </ActionIcon>
+                    <deleter.Form method="POST">
+                      <Input
+                        type="hidden"
+                        name="action"
+                        value={UserActions.DeleteUserRole}
+                      />
+                      <Input type="hidden" name="userId" value={row.id} />
+                      <Input type="hidden" name="roleId" value={role.id} />
+                      <ActionIcon
+                        variant="outline"
+                        color="red"
+                        disabled={deleter.loading}
+                        type="submit"
+                      >
+                        <IconTrash />
+                      </ActionIcon>
+                    </deleter.Form>
                   )}
                 </Table.Td>
                 <Table.Td>{role.name}</Table.Td>

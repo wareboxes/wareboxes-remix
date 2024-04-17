@@ -1,4 +1,5 @@
 import { Button, Loader, Text } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { useLoaderData } from "@remix-run/react";
 import {
   MRT_Cell,
@@ -16,7 +17,6 @@ import { SelectRole as Role, SelectUser as User } from "~/utils/types/db/users";
 import { Actions } from "./Actions";
 import { RolesModal } from "./RolesModal";
 import { action, loader } from "./route.server";
-import { useDisclosure } from "@mantine/hooks";
 
 export { action, loader };
 
@@ -24,19 +24,7 @@ export default function AdminUsers() {
   const [rolesModalOpen, { open, close }] = useDisclosure();
   const [selectedRow, setSelectedRow] = useState<Pick<User, "id"> | null>(null);
   const { users, roles } = useLoaderData<{ users: User[]; roles: Role[] }>();
-  const { updater, deleter, restorer } = Actions();
-
-  const deleteUser = async (userId: string) => {
-    const formData = new FormData();
-    formData.append("userId", userId);
-    deleter.performAction(formData);
-  };
-
-  const restoreUser = async (userId: string) => {
-    const formData = new FormData();
-    formData.append("userId", userId);
-    restorer.performAction(formData);
-  };
+  const { updater } = Actions();
 
   const updateUser: MRT_TableOptions<User>["onEditingRowSave"] = async ({
     values,
@@ -46,7 +34,7 @@ export default function AdminUsers() {
     Object.entries(values).forEach(([key, value]) => {
       if (value != null) formData.append(key, value.toString());
     });
-    updater.performAction(formData);
+    updater.submit(formData);
     table.setEditingRow(null);
   };
 
@@ -158,8 +146,11 @@ export default function AdminUsers() {
       <RowActions
         row={row}
         table={table}
-        onDelete={(id) => deleteUser(id)}
-        onRestore={(id) => restoreUser(id)}
+        tableId="userId"
+        actions={{
+          delete: "deleteUser",
+          restore: "restoreUser",
+        }}
         getDeleteConfirmMessage={(row) => (
           <Text>
             Are you sure you want to delete {row.original.firstName}{" "}

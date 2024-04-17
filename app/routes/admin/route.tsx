@@ -1,12 +1,6 @@
-import { Box, LoadingOverlay, Tabs } from "@mantine/core";
+import { Tabs } from "@mantine/core";
 import { LoaderFunctionArgs } from "@remix-run/node";
-import {
-  Link,
-  Outlet,
-  redirect,
-  useMatches,
-  useNavigation,
-} from "@remix-run/react";
+import { Link, Outlet, redirect, useMatches } from "@remix-run/react";
 import { withAuth } from "~/utils/permissions";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -21,7 +15,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function Admin() {
-  const navigation = useNavigation();
   const matches = useMatches();
   const currentTab = matches[matches.length - 1].pathname.split("/").pop();
 
@@ -45,10 +38,7 @@ export default function Admin() {
           Roles
         </Tabs.Tab>
       </Tabs.List>
-      <Box pos="relative">
-        <LoadingOverlay visible={navigation.state === "loading"} />
-        <Outlet />
-      </Box>
+      <Outlet />
     </Tabs>
   );
 }

@@ -1,5 +1,5 @@
 import { useFetcher } from "@remix-run/react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { notify } from "../notifications";
 
 interface FetcherResponse {
@@ -12,37 +12,42 @@ interface NotificationMessages {
   errorMessage?: string;
 }
 
-interface ActionOptions {
-  action: string;
+interface ActionOptions<T> {
+  dataAction?: T;
   notificationMessages: NotificationMessages;
 }
 
-export function useDataAction({ action, notificationMessages }: ActionOptions) {
+export function useDataAction<T>({
+  dataAction,
+  notificationMessages,
+}: ActionOptions<T>) {
+  const fetcher = useFetcher<FetcherResponse>();
+  const loading = fetcher.state === "loading";
+  const submitting = fetcher.state === "submitting";
+
   const {
-    successMessage = `Item ${action}d successfully`,
-    errorMessage = `Item ${action} failed`,
+    successMessage = `Item ${dataAction}d successfully`,
+    errorMessage = `Item ${dataAction} failed`,
   } = notificationMessages;
 
-  const fetcher = useFetcher<FetcherResponse>();
-  const [loading, setLoading] = useState(false);
-
-  const performAction = (formData: FormData) => {
-    setLoading(true);
-    const intent = formData.get("intent");
-    if (!intent) formData.append("intent", action);
+  const submit = (formData: FormData) => {
+    const action = formData?.get("action") || dataAction;
+    if (!action) {
+      throw new Error("Action not provided");
+    }
+    formData?.append("action", action as string);
     fetcher.submit(formData, { method: "POST" });
   };
 
   useEffect(() => {
     if (fetcher.state === "idle" && fetcher.data) {
-      setLoading(false);
-      if (fetcher.data?.success) {
+      if (fetcher.data.success) {
         notify({
           status: "success",
           title: "Success",
           message: successMessage,
         });
-      } else if (fetcher.data?.error) {
+      } else if (fetcher.data.error) {
         notify({
           status: "error",
           title: "Error",
@@ -52,5 +57,5 @@ export function useDataAction({ action, notificationMessages }: ActionOptions) {
     }
   }, [fetcher.state, fetcher.data, successMessage, errorMessage]);
 
-  return { performAction, loading };
+  return { ...fetcher, submit, loading, submitting };
 }
