@@ -6,6 +6,8 @@ export enum RoleActions {
   RestoreRole = "roleRestore",
   AddChildRole = "addChildRole",
   DeleteChildRole = "deleteChildRole",
+  DeleteRolePermission = "deleteRolePermission",
+  AddRolePermission = "addRolePermission",
 }
 
 export function Actions() {

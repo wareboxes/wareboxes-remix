@@ -1,23 +1,17 @@
 import { ActionFunctionArgs, LoaderFunctionArgs, json } from "@remix-run/node";
 import {
-  AddDeleteChildRoleSchema,
-  DeleteRestoreRoleSchema,
-  UpdateRoleSchema,
-  addRoleRelationship,
-  deleteRole,
-  deleteRoleRelationship,
-  getRoles,
-  restoreRole,
-  updateRole,
-  withAuth,
+  getPermissions,
+  withAuth
 } from "~/utils/permissions";
 import { actionResponse } from "~/utils/types/actions";
 import { RoleActions } from "./Actions";
+import { AddDeleteChildRoleSchema, AddDeleteRolePermissionSchema, DeleteRestoreRoleSchema, UpdateRoleSchema, addRolePermission, addRoleRelationship, deleteRole, deleteRolePermission, deleteRoleRelationship, getRoles, restoreRole, updateRole } from "~/utils/roles";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  await withAuth('admin', request);
+  await withAuth("admin", request);
   return {
     roles: await getRoles(true, true),
+    permissions: await getPermissions(),
   };
 }
 
@@ -36,6 +30,10 @@ export async function action({ request }: ActionFunctionArgs) {
       return handleAddChildRole(formData);
     case RoleActions.DeleteChildRole:
       return handleDeleteChildRole(formData);
+    case RoleActions.AddRolePermission:
+      return handleAddRolePermission(formData);
+    case RoleActions.DeleteRolePermission:
+      return handleDeleteRolePermission(formData);
     default:
       return json(actionResponse(false, "Invalid action"));
   }
@@ -93,9 +91,7 @@ async function handleAddChildRole(formData: FormData) {
   );
 
   if (!result.success) {
-    return json(
-      actionResponse(false, "Invalid role id", result.error.flatten())
-    );
+    return json(actionResponse(false, "Error", result.error.flatten()));
   }
 
   const { roleId, childRoleId } = result.data;
@@ -109,12 +105,38 @@ async function handleDeleteChildRole(formData: FormData) {
   );
 
   if (!result.success) {
-    return json(
-      actionResponse(false, "Invalid role id", result.error.flatten())
-    );
+    return json(actionResponse(false, "Error", result.error.flatten()));
   }
 
   const { roleId, childRoleId } = result.data;
   const res = await deleteRoleRelationship(Number(roleId), Number(childRoleId));
+  return json(actionResponse(res));
+}
+
+async function handleAddRolePermission(formData: FormData) {
+  const result = AddDeleteRolePermissionSchema.safeParse(
+    Object.fromEntries(formData)
+  );
+
+  if (!result.success) {
+    return json(actionResponse(false, "Error", result.error.flatten()));
+  }
+
+  const { roleId, permissionId } = result.data;
+  const res = await addRolePermission(Number(roleId), Number(permissionId));
+  return json(actionResponse(res));
+}
+
+async function handleDeleteRolePermission(formData: FormData) {
+  const result = AddDeleteRolePermissionSchema.safeParse(
+    Object.fromEntries(formData)
+  );
+
+  if (!result.success) {
+    return json(actionResponse(false, "Error", result.error.flatten()));
+  }
+
+  const { roleId, permissionId } = result.data;
+  const res = await deleteRolePermission(Number(roleId), Number(permissionId));
   return json(actionResponse(res));
 }

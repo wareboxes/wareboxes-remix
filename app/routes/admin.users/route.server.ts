@@ -1,8 +1,5 @@
 import { ActionFunctionArgs, LoaderFunctionArgs, json } from "@remix-run/node";
 import {
-  AddDeleteUserRoleSchema,
-  addRoleToUser,
-  getRoles,
   withAuth,
 } from "~/utils/permissions";
 import { actionResponse } from "~/utils/types/actions";
@@ -16,6 +13,7 @@ import {
   updateUser,
 } from "~/utils/users";
 import { UserActions } from "./Actions";
+import { getRoles, AddDeleteUserRoleSchema, addRoleToUser } from "~/utils/roles";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   await withAuth("admin", request);

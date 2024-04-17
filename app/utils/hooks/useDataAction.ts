@@ -41,6 +41,7 @@ export function useDataAction<T>({
 
   useEffect(() => {
     if (fetcher.state === "idle" && fetcher.data) {
+      // TODO: Pass success message from the server
       if (fetcher.data.success) {
         notify({
           status: "success",
@@ -48,6 +49,7 @@ export function useDataAction<T>({
           message: successMessage,
         });
       } else if (fetcher.data.error) {
+        // TODO: Pass error message from the server
         notify({
           status: "error",
           title: "Error",
