@@ -1,18 +1,15 @@
-import { Button, Loader, Text } from "@mantine/core";
+import { Button, Grid, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useLoaderData } from "@remix-run/react";
 import {
   MRT_Cell,
   MRT_Row,
   MRT_TableOptions,
-  MantineReactTable,
-  useMantineReactTable,
   type MRT_ColumnDef,
 } from "mantine-react-table";
 import { useCallback, useMemo, useState } from "react";
-import { ClientOnly } from "remix-utils/client-only";
-import { EditModal } from "~/components/Table/EditModal";
-import { RowActions } from "~/components/Table/RowActions";
+import { LocaleTimeCell } from "~/components/Table/LocaleTimeCell";
+import TableV1 from "~/components/Table/Table";
 import { SelectRole as Role } from "~/utils/types/db/users";
 import { Actions } from "./Actions";
 import { ChildRolesModal } from "./ChildRolesModal";
@@ -23,7 +20,7 @@ export { action, loader };
 export default function AdminRoles() {
   const [opened, { open, close }] = useDisclosure();
   const [selectedRow, setSelectedRow] = useState<Pick<Role, "id"> | null>(null);
-  const { roles } = useLoaderData<{ roles: Role[] }>();
+  const { roles } = useLoaderData<{ roles: Role[] }>() || { roles: [] };
   const { updater } = Actions();
 
   const updateRole: MRT_TableOptions<Role>["onEditingRowSave"] = async ({
@@ -80,13 +77,9 @@ export default function AdminRoles() {
         header: "Created",
         accessorKey: "created",
         enableEditing: false,
-        Cell: ({ cell }: { cell: MRT_Cell<Role, unknown> }) => {
+        Cell: ({ cell }: { cell: MRT_Cell<Role> }) => {
           const created = cell.getValue() as string;
-          return (
-            <ClientOnly fallback={<Loader />}>
-              {() => new Date(created).toLocaleString()}
-            </ClientOnly>
-          );
+          return <LocaleTimeCell value={created} />;
         },
         Edit: () => null,
       },
@@ -94,15 +87,9 @@ export default function AdminRoles() {
         header: "Deleted",
         accessorKey: "deleted",
         enableEditing: false,
-        Cell: ({ cell }: { cell: MRT_Cell<Role, unknown> }) => {
+        Cell: ({ cell }: { cell: MRT_Cell<Role> }) => {
           const deleted = cell.getValue() as string;
-          return deleted ? (
-            <ClientOnly fallback={<Loader />}>
-              {() => new Date(deleted).toLocaleString()}
-            </ClientOnly>
-          ) : (
-            ""
-          );
+          return <LocaleTimeCell value={deleted} />;
         },
         Edit: () => null,
       },
@@ -110,57 +97,40 @@ export default function AdminRoles() {
     [openChildRolesModal]
   );
 
-  const table = useMantineReactTable({
-    columns,
-    data: roles,
-    initialState: {
-      density: "xs",
-      pagination: {
-        pageIndex: 0,
-        pageSize: 500,
-      },
-      showGlobalFilter: true,
-      columnVisibility: {
-        id: false,
-      },
-    },
-    positionGlobalFilter: "left",
-    autoResetAll: false,
-    enableEditing: true,
-    onEditingRowSave: updateRole,
-    renderRowActions: ({ row, table }) => (
-      <RowActions
-        row={row}
-        table={table}
-        tableId="roleId"
-        actions={{ delete: 'roleDelete', restore: 'roleRestore' }}
-        getDeleteConfirmMessage={(row) => (
-          <Text>Are you sure you want to delete {row.original.name}?</Text>
-        )}
-      />
-    ),
-    renderEditRowModalContent: ({ table, row, internalEditComponents }) => (
-      <EditModal
-        table={table}
-        row={row}
-        internalEditComponents={internalEditComponents}
-        title="Edit Role"
-      />
-    ),
-    mantineTableProps: {
-      striped: true,
-    },
-  });
-
   return (
-    <>
+    <Grid mt="xs">
       <ChildRolesModal
         opened={opened}
         close={close}
         roles={roles}
         row={roles.find((role) => role.id === selectedRow?.id) || null}
       />
-      <MantineReactTable table={table} />
-    </>
+      <Grid.Col span={12}>
+        <TableV1
+          data={roles}
+          columns={columns}
+          updateData={updateRole}
+          deleteDataAction="roleDelete"
+          restoreDataAction="roleRestore"
+          tableId="roleId"
+          editModalTitle="Edit Role"
+          columnVisibility={{
+            id: false,
+          }}
+          deleteModalTitle={(row) => `Delete Role - ${row.original.name}`}
+          deleteConfirmComponent={(row) => (
+            <Text>Are you sure you want to delete {row.original.name}?</Text>
+          )}
+          canEditRow={(row: MRT_Row<Role>) => ({
+            edit: row.original.description !== "Self role",
+            reason: "Self role cannot be edited",
+          })}
+          canDeleteRow={(row: MRT_Row<Role>) => ({
+            delete: row.original.description !== "Self role",
+            reason: "Self role cannot be deleted",
+          })}
+        />
+      </Grid.Col>
+    </Grid>
   );
 }

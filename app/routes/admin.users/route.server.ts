@@ -26,6 +26,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export async function action({ request }: ActionFunctionArgs) {
+  await withAuth("admin", request);
   const formData = await request.formData();
   const action = formData.get("action");
 

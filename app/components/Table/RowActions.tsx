@@ -5,15 +5,18 @@ import { IconEdit, IconRestore, IconTrash } from "@tabler/icons-react";
 import { MRT_Row, MRT_TableInstance } from "mantine-react-table";
 import { useDataAction } from "~/utils/hooks/useDataAction";
 
-interface RowActionsProps<T extends Record<string, any>> {
+interface RowActionsProps<T extends Record<string, any>, K> {
   row: MRT_Row<T>;
   table: MRT_TableInstance<T>;
   tableId: string;
   actions: {
-    delete: string;
-    restore: string;
+    delete: K;
+    restore: K;
   };
-  getDeleteConfirmMessage: (row: MRT_Row<T>) => React.ReactNode;
+  deleteModalTitle?: string;
+  deleteConfirmComponent: (row: MRT_Row<T>) => React.ReactNode;
+  canEditRow?: (row: MRT_Row<T>) => { edit: boolean; reason?: string };
+  canDeleteRow?: (row: MRT_Row<T>) => { delete: boolean; reason?: string };
 }
 
 export function RowActions<T extends Record<string, any>>({
@@ -21,8 +24,15 @@ export function RowActions<T extends Record<string, any>>({
   table,
   tableId,
   actions,
-  getDeleteConfirmMessage,
-}: RowActionsProps<T>) {
+  deleteModalTitle: deleteConfirmTitle = "Delete Item",
+  deleteConfirmComponent,
+  canEditRow = () => {
+    return { edit: true, reason: "Cannot edit row" };
+  },
+  canDeleteRow = () => {
+    return { delete: true, reason: "Cannot delete row" };
+  }
+}: RowActionsProps<T, string>) {
   const deleter = useDataAction({
     dataAction: actions.delete,
     notificationMessages: {
@@ -37,12 +47,13 @@ export function RowActions<T extends Record<string, any>>({
   });
 
   const isDeleted = row.original.deleted;
-  const isSelfRole = row.original.description === "Self role";
+  const canEdit = canEditRow(row);
+  const canDelete = canDeleteRow(row);
 
   const openDeleteConfirmModal = (formData: FormData) => {
     modals.openConfirmModal({
-      title: "Confirm item deletion",
-      children: getDeleteConfirmMessage(row),
+      title: deleteConfirmTitle,
+      children: deleteConfirmComponent(row),
       labels: { confirm: "Delete", cancel: "Cancel" },
       confirmProps: { color: "red" },
       onConfirm: () => deleter.submit(formData),
@@ -51,10 +62,10 @@ export function RowActions<T extends Record<string, any>>({
 
   return (
     <Flex gap="md">
-      <Tooltip label={isSelfRole ? "Cannot edit self role" : "Edit"}>
+      <Tooltip label={canEdit.edit ? "Edit" : canEdit.reason}>
         <ActionIcon
           variant="outline"
-          disabled={isSelfRole}
+          disabled={!canEdit.edit}
           onClick={() => table.setEditingRow(row)}
         >
           <IconEdit />
@@ -76,7 +87,7 @@ export function RowActions<T extends Record<string, any>>({
           </restorer.Form>
         </Tooltip>
       ) : (
-        <Tooltip label={isSelfRole ? "Cannot delete self role" : "Delete"}>
+        <Tooltip label={canDelete.delete ? "Delete" : canDelete.reason}>
           <deleter.Form
             method="POST"
             onSubmit={(e) => {
@@ -89,7 +100,7 @@ export function RowActions<T extends Record<string, any>>({
             <ActionIcon
               variant="outline"
               color="red"
-              disabled={deleter.submitting || isSelfRole}
+              disabled={deleter.submitting || !canDelete.delete}
               type="submit"
             >
               {deleter.submitting ? <Loader /> : <IconTrash />}

@@ -1,4 +1,4 @@
-import { Button, Loader, Text } from "@mantine/core";
+import { Button, Grid, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useLoaderData } from "@remix-run/react";
 import {
@@ -6,13 +6,10 @@ import {
   MRT_ColumnDef,
   MRT_Row,
   MRT_TableOptions,
-  MantineReactTable,
-  useMantineReactTable,
 } from "mantine-react-table";
 import { useCallback, useMemo, useState } from "react";
-import { ClientOnly } from "remix-utils/client-only";
-import { EditModal } from "~/components/Table/EditModal";
-import { RowActions } from "~/components/Table/RowActions";
+import { LocaleTimeCell } from "~/components/Table/LocaleTimeCell";
+import TableV1 from "~/components/Table/Table";
 import { SelectRole as Role, SelectUser as User } from "~/utils/types/db/users";
 import { Actions } from "./Actions";
 import { RolesModal } from "./RolesModal";
@@ -23,7 +20,13 @@ export { action, loader };
 export default function AdminUsers() {
   const [rolesModalOpen, { open, close }] = useDisclosure();
   const [selectedRow, setSelectedRow] = useState<Pick<User, "id"> | null>(null);
-  const { users, roles } = useLoaderData<{ users: User[]; roles: Role[] }>();
+  const { users, roles } = useLoaderData<{
+    users: User[];
+    roles: Role[];
+  }>() || {
+    users: [],
+    roles: [],
+  };
   const { updater } = Actions();
 
   const updateUser: MRT_TableOptions<User>["onEditingRowSave"] = async ({
@@ -35,7 +38,6 @@ export default function AdminUsers() {
       if (value != null) formData.append(key, value.toString());
     });
     updater.submit(formData);
-    table.setEditingRow(null);
   };
 
   const openRolesModal = useCallback(
@@ -76,36 +78,6 @@ export default function AdminUsers() {
         accessorKey: "phone",
       },
       {
-        header: "Created",
-        accessorKey: "created",
-        Cell: ({ cell }: { cell: MRT_Cell<User, unknown> }) => {
-          const created = cell.getValue() as string;
-          return (
-            <ClientOnly fallback={<Loader />}>
-              {() => new Date(created).toLocaleString()}
-            </ClientOnly>
-          );
-        },
-        Edit: () => null,
-        enableEditing: false,
-      },
-      {
-        header: "Deleted",
-        accessorKey: "deleted",
-        Cell: ({ cell }: { cell: MRT_Cell<User, unknown> }) => {
-          const deleted = cell.getValue() as string;
-          return deleted ? (
-            <ClientOnly fallback={<Loader />}>
-              {() => new Date(deleted).toLocaleString()}
-            </ClientOnly>
-          ) : (
-            ""
-          );
-        },
-        Edit: () => null,
-        enableEditing: false,
-      },
-      {
         header: "Roles",
         accessorKey: "roles",
         enableEditing: false,
@@ -116,71 +88,65 @@ export default function AdminUsers() {
         },
         Edit: () => null,
       },
+      {
+        header: "Created",
+        accessorKey: "created",
+        Cell: ({ cell }: { cell: MRT_Cell<User> }) => {
+          const created = cell.getValue() as string;
+          return <LocaleTimeCell value={created} />;
+        },
+        Edit: () => null,
+        enableEditing: false,
+      },
+      {
+        header: "Deleted",
+        accessorKey: "deleted",
+        Cell: ({ cell }: { cell: MRT_Cell<User> }) => {
+          const deleted = cell.getValue() as string;
+          return <LocaleTimeCell value={deleted} />;
+        },
+        Edit: () => null,
+        enableEditing: false,
+      },
     ],
     [openRolesModal]
   );
 
-  const table = useMantineReactTable({
-    columns,
-    data: users,
-    initialState: {
-      density: "xs",
-      pagination: {
-        pageIndex: 0,
-        pageSize: 500,
-      },
-      showGlobalFilter: true,
-      columnVisibility: {
-        id: false,
-        firstName: false,
-        lastName: false,
-        nickName: false,
-        phone: false,
-      },
-    },
-    positionGlobalFilter: "left",
-    autoResetAll: false,
-    enableEditing: true,
-    onEditingRowSave: updateUser,
-    renderRowActions: ({ row, table }) => (
-      <RowActions
-        row={row}
-        table={table}
-        tableId="userId"
-        actions={{
-          delete: "deleteUser",
-          restore: "restoreUser",
-        }}
-        getDeleteConfirmMessage={(row) => (
-          <Text>
-            Are you sure you want to delete {row.original.firstName}{" "}
-            {row.original.lastName}?
-          </Text>
-        )}
-      />
-    ),
-    renderEditRowModalContent: ({ table, row, internalEditComponents }) => (
-      <EditModal
-        table={table}
-        row={row}
-        internalEditComponents={internalEditComponents}
-        title={`Edit User - ${row.original.email}`}
-      />
-    ),
-    mantineTableProps: {
-      striped: true,
-    },
-  });
-
   return (
-    <>
+    <Grid mt="xs">
       <RolesModal
         opened={rolesModalOpen}
         close={close}
         roles={roles}
         row={users.find((user) => user.id === selectedRow?.id) || null}
       />
-      <MantineReactTable table={table} />
-    </>
+      <Grid.Col span={12}>
+        <TableV1
+          data={users}
+          columns={columns}
+          updateData={updateUser}
+          deleteDataAction="deleteUser"
+          restoreDataAction="restoreUser"
+          tableId="userId"
+          editModalTitle="Edit User"
+          columnVisibility={{
+            id: false,
+            firstName: false,
+            lastName: false,
+            nickName: false,
+            phone: false,
+          }}
+          deleteModalTitle={(row) =>
+            `Delete User - ${row.original.firstName} ${row.original.lastName}`
+          }
+          deleteConfirmComponent={(row) => (
+            <Text>
+              Are you sure you want to delete {row.original.firstName}{" "}
+              {row.original.lastName}?
+            </Text>
+          )}
+        />
+      </Grid.Col>
+    </Grid>
   );
 }

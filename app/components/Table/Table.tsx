@@ -8,25 +8,47 @@ import {
 import { EditModal } from "~/components/Table/EditModal";
 import { RowActions } from "~/components/Table/RowActions";
 
-interface TablePageProps<T extends Record<string, unknown>> {
+interface TablePageProps<
+  T extends Record<string, unknown>,
+  Action extends string
+> {
   data: T[];
   columns: MRT_ColumnDef<T>[];
   updateData: MRT_TableOptions<T>["onEditingRowSave"];
-  deleteData: (id: string) => Promise<void>;
-  restoreData: (id: string) => Promise<void>;
-  getDeleteConfirmMessage: (row: MRT_Row<T>) => React.ReactNode;
-  title: string;
+  deleteDataAction: Action;
+  restoreDataAction: Action;
+  tableId: string;
+  editModalTitle?: string;
+  deleteModalTitle?: (row: MRT_Row<T>) => string;
+  columnVisibility?: Record<string, boolean>;
+  deleteConfirmComponent: (row: MRT_Row<T>) => React.ReactNode;
+  canEditRow?: (row: MRT_Row<T>) => { edit: boolean; reason?: string };
+  canDeleteRow?: (row: MRT_Row<T>) => { delete: boolean; reason?: string };
 }
 
-export default function TablePage<T extends Record<string, unknown>>({
+export default function TableV1<
+  T extends Record<string, unknown>,
+  Action extends string
+>({
   data,
   columns,
   updateData,
-  deleteData,
-  restoreData,
-  getDeleteConfirmMessage,
-  title,
-}: TablePageProps<T>) {
+  deleteDataAction,
+  restoreDataAction,
+  tableId,
+  editModalTitle = "Edit Item",
+  deleteModalTitle = () => `Delete Item`,
+  columnVisibility = {},
+  deleteConfirmComponent,
+  canEditRow,
+  canDeleteRow,
+}: TablePageProps<T, Action>) {
+  const handleRowSave: MRT_TableOptions<T>["onEditingRowSave"] = (values) => {
+    if (updateData) {
+      updateData(values);
+    }
+    table.setEditingRow(null);
+  };
 
   const table = useMantineReactTable({
     columns,
@@ -38,18 +60,25 @@ export default function TablePage<T extends Record<string, unknown>>({
         pageSize: 500,
       },
       showGlobalFilter: true,
+      columnVisibility,
     },
     positionGlobalFilter: "left",
     autoResetAll: false,
     enableEditing: true,
-    onEditingRowSave: updateData,
+    onEditingRowSave: handleRowSave,
     renderRowActions: ({ row, table }) => (
       <RowActions
         row={row}
         table={table}
-        onDelete={(id) => deleteData(id)}
-        onRestore={(id) => restoreData(id)}
-        getDeleteConfirmMessage={getDeleteConfirmMessage}
+        tableId={tableId}
+        actions={{
+          delete: deleteDataAction,
+          restore: restoreDataAction,
+        }}
+        canEditRow={canEditRow}
+        canDeleteRow={canDeleteRow}
+        deleteModalTitle={deleteModalTitle(row)}
+        deleteConfirmComponent={deleteConfirmComponent}
       />
     ),
     renderEditRowModalContent: ({ table, row, internalEditComponents }) => (
@@ -57,7 +86,7 @@ export default function TablePage<T extends Record<string, unknown>>({
         table={table}
         row={row}
         internalEditComponents={internalEditComponents}
-        title={`Edit ${title}`}
+        title={`${editModalTitle}`}
       />
     ),
     mantineTableProps: {
