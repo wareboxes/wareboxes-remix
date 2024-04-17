@@ -16,10 +16,12 @@ import { SelectRole as Role, SelectUser as User } from "~/utils/types/db/users";
 import { Actions } from "./Actions";
 import { RolesModal } from "./RolesModal";
 import { action, loader } from "./route.server";
+import { useDisclosure } from "@mantine/hooks";
 
 export { action, loader };
 
 export default function AdminUsers() {
+  const [rolesModalOpen, { open, close }] = useDisclosure();
   const [selectedRow, setSelectedRow] = useState<Pick<User, "id"> | null>(null);
   const { users, roles } = useLoaderData<{ users: User[]; roles: Role[] }>();
   const { updater, deleter, restorer } = Actions();
@@ -50,9 +52,10 @@ export default function AdminUsers() {
 
   const openRolesModal = useCallback(
     (row: MRT_Row<User>) => {
+      open();
       setSelectedRow({ id: row.original.id });
     },
-    [setSelectedRow]
+    [setSelectedRow, open]
   );
 
   const columns = useMemo<MRT_ColumnDef<User>[]>(
@@ -118,6 +121,8 @@ export default function AdminUsers() {
         header: "Roles",
         accessorKey: "roles",
         enableEditing: false,
+        enableSorting: false,
+        enableColumnActions: false,
         Cell: ({ row }: { row: MRT_Row<User> }) => {
           return <Button onClick={() => openRolesModal(row)}>Roles</Button>;
         },
@@ -179,9 +184,10 @@ export default function AdminUsers() {
   return (
     <>
       <RolesModal
+        opened={rolesModalOpen}
+        close={close}
         roles={roles}
         row={users.find((user) => user.id === selectedRow?.id) || null}
-        setSelectedRow={setSelectedRow}
       />
       <MantineReactTable table={table} />
     </>

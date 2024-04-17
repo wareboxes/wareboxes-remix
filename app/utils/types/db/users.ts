@@ -181,6 +181,7 @@ export type SelectUser = typeof users.$inferSelect & {
 export type InsertUser = typeof users.$inferInsert;
 
 export type SelectRole = typeof roles.$inferSelect & {
+  parentRoles?: SelectRole[];
   childRoles?: SelectRole[];
   rolePermissions?: SelectPermission[];
 };

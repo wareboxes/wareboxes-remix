@@ -1,23 +1,28 @@
-import { Loader, Text } from "@mantine/core";
+import { Button, Loader, Text } from "@mantine/core";
 import { useLoaderData } from "@remix-run/react";
 import {
   MRT_Cell,
+  MRT_Row,
   MRT_TableOptions,
   MantineReactTable,
   useMantineReactTable,
   type MRT_ColumnDef,
 } from "mantine-react-table";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ClientOnly } from "remix-utils/client-only";
 import { EditModal } from "~/components/Table/EditModal";
 import { RowActions } from "~/components/Table/RowActions";
 import { SelectRole as Role } from "~/utils/types/db/users";
 import { Actions } from "./Actions";
 import { action, loader } from "./route.server";
+import { ChildRolesModal } from "./ChildRolesModal";
+import { useDisclosure } from "@mantine/hooks";
 
 export { action, loader };
 
 export default function AdminRoles() {
+  const [opened, { open, close }] = useDisclosure();
+  const [selectedRow, setSelectedRow] = useState<Pick<Role, "id"> | null>(null);
   const { roles } = useLoaderData<{ roles: Role[] }>();
   const { updater, deleter, restorer } = Actions();
 
@@ -52,6 +57,14 @@ export default function AdminRoles() {
     table.setEditingRow(null);
   };
 
+  const openChildRolesModal = useCallback(
+    (row: MRT_Row<Role>) => {
+      open();
+      setSelectedRow({ id: row.original.id });
+    },
+    [setSelectedRow, open]
+  );
+
   const columns = useMemo<MRT_ColumnDef<Role>[]>(
     () => [
       {
@@ -74,7 +87,12 @@ export default function AdminRoles() {
         header: "Child Roles",
         accessorKey: "roles",
         enableEditing: false,
+        enableSorting: false,
+        enableColumnActions: false,
         Edit: () => null,
+        Cell: ({ row }: { row: MRT_Row<Role> }) => (
+          <Button onClick={() => openChildRolesModal(row)}>Roles</Button>
+        ),
       },
       {
         header: "Created",
@@ -107,7 +125,7 @@ export default function AdminRoles() {
         Edit: () => null,
       },
     ],
-    []
+    [openChildRolesModal]
   );
 
   const table = useMantineReactTable({
@@ -154,6 +172,12 @@ export default function AdminRoles() {
 
   return (
     <>
+      <ChildRolesModal
+        opened={opened}
+        close={close}
+        roles={roles}
+        row={roles.find((role) => role.id === selectedRow?.id) || null}
+      />
       <MantineReactTable table={table} />
     </>
   );

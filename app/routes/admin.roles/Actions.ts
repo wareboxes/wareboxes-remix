@@ -4,19 +4,19 @@ export function Actions() {
   const updater = useDataAction({
     action: "update",
     notificationMessages: {
-      successMessage: "User updated successfully",
+      successMessage: "Role updated successfully",
     },
   });
   const deleter = useDataAction({
     action: "delete",
     notificationMessages: {
-      successMessage: "User deleted successfully",
+      successMessage: "Role deleted successfully",
     },
   });
   const restorer = useDataAction({
     action: "restore",
     notificationMessages: {
-      successMessage: "User restored successfully",
+      successMessage: "Role restored successfully",
     },
   });
 

@@ -173,25 +173,114 @@ export const getRoles = async (
       description: roles.description,
       created: roles.created,
       deleted: roles.deleted,
-      childRoles: sql<Role[]>`
-        COALESCE(
-          (
-            SELECT json_agg(child_roles."childRole")
-            FROM (
-              SELECT json_build_object(
-                'id', r.id,
-                'name', r.name,
-                'description', r.description,
-                'created', r.created,
-                'deleted', r.deleted,
-                'parentId', r.parent_id
-              ) AS "childRole"
+      parentRoles: sql<Role[]>`
+        (
+          WITH RECURSIVE ParentRoleHierarchy AS (
+            SELECT
+              r.id,
+              r.name,
+              r.description,
+              r.created,
+              r.deleted,
+              r.parent_id
+            FROM wareboxes.roles r
+            WHERE r.id IN (
+              SELECT
+                parent_id
+                -- Alias the table to avoid ambiguity
               FROM wareboxes.roles r
-              WHERE r.parent_id = roles.id
-            ) AS "child_roles"
+              WHERE id = roles.id
+              AND deleted IS NULL
+            )
+            UNION ALL
+            SELECT
+              r.id,
+              r.name,
+              r.description,
+              r.created,
+              r.deleted,
+              r.parent_id
+            FROM wareboxes.roles r
+            INNER JOIN ParentRoleHierarchy rh ON r.id = rh.parent_id
           ),
-          '[]'
-        )
+          DistinctParentRoles AS (
+            SELECT DISTINCT
+              rh.id,
+              rh.name,
+              rh.description,
+              rh.created,
+              rh.deleted,
+              rh.parent_id
+            FROM ParentRoleHierarchy rh
+            WHERE rh.deleted IS NULL
+          )
+          SELECT COALESCE(
+            (
+              SELECT json_agg(
+                json_build_object(
+                  'id', r.id,
+                  'name', r.name,
+                  'description', r.description,
+                  'created', r.created,
+                  'deleted', r.deleted,
+                  'parentId', r.parent_id
+                )
+              ) FROM DistinctParentRoles r
+            ),
+            '[]'::json
+          ) AS "parentRoles"
+        ) AS "parentRoles"
+      `,
+      childRoles: sql<Role[]>`
+        (
+          WITH RECURSIVE RoleHierarchy AS (
+            SELECT
+              r.id,
+              r.name,
+              r.description,
+              r.created,
+              r.deleted,
+              r.parent_id
+            FROM wareboxes.roles r
+            WHERE r.parent_id = roles.id
+            UNION ALL
+            SELECT
+              r.id,
+              r.name,
+              r.description,
+              r.created,
+              r.deleted,
+              r.parent_id
+            FROM wareboxes.roles r
+            JOIN RoleHierarchy rh ON r.parent_id = rh.id
+          ),
+          DistinctChildRoles AS (
+            SELECT DISTINCT
+              rh.id,
+              rh.name,
+              rh.description,
+              rh.created,
+              rh.deleted,
+              rh.parent_id
+            FROM RoleHierarchy rh
+            WHERE rh.deleted IS NULL
+          )
+          SELECT COALESCE(
+            (
+              SELECT json_agg(
+                json_build_object(
+                  'id', r.id,
+                  'name', r.name,
+                  'description', r.description,
+                  'created', r.created,
+                  'deleted', r.deleted,
+                  'parentId', r.parent_id
+                )
+              ) FROM DistinctChildRoles r
+            ),
+            '[]'::json
+          ) AS "childRoles"
+        ) AS "childRoles"
       `,
       rolePermissions: sql<Permission[]>`
         COALESCE(
@@ -227,8 +316,8 @@ export const getRoles = async (
 
       return and(...conditions);
     })
-    .orderBy(desc(roles.created));
-
+    .orderBy(desc(roles.created))
+    .groupBy(roles.id);
   return res;
 };
 export const getPermissions = async (
@@ -279,16 +368,17 @@ export const getUserPermissions = async (
 ): Promise<Permission[]> => {
   const res: Permission[] = await db.execute(sql<Permission[]>`
     WITH RECURSIVE RoleHierarchy AS (
-      -- Start with the direct roles of the user
       SELECT r.id, r.parent_id
       FROM wareboxes.user_roles ur
       INNER JOIN wareboxes.roles r ON r.id = ur.role_id
-      WHERE ur.user_id = ${userId} AND r.deleted IS NULL
+      WHERE ur.user_id = ${userId}
+      AND ur.deleted IS NULL
+      AND r.deleted IS NULL
       UNION
-      -- Recursively find parent roles
       SELECT r.id, r.parent_id
       FROM wareboxes.roles r
       INNER JOIN RoleHierarchy rh ON rh.id = r.parent_id
+      WHERE r.deleted IS NULL
     )
     SELECT DISTINCT p.id, UPPER(p.name) as name, p.description, p.created, p.deleted
     FROM wareboxes.permissions p
@@ -297,7 +387,6 @@ export const getUserPermissions = async (
     WHERE p.deleted IS NULL
     AND rp.deleted IS NULL;
   `);
-
   return res;
 };
 
@@ -307,11 +396,14 @@ export const getUserRoles = async (userId: number): Promise<Role[]> => {
       SELECT r.id, r.name, r.description, r.created, r.deleted, r.parent_id
       FROM wareboxes.user_roles ur
       INNER JOIN wareboxes.roles r ON r.id = ur.role_id
-      WHERE ur.user_id = ${userId} AND r.deleted IS NULL
+      WHERE ur.user_id = ${userId}
+      AND r.deleted IS NULL
+      AND ur.deleted IS NULL
       UNION
       SELECT r.id, r.name, r.description, r.created, r.deleted, r.parent_id
       FROM wareboxes.roles r
       INNER JOIN RoleHierarchy rh ON rh.id = r.parent_id
+      WHERE r.deleted IS NULL
     )
     SELECT DISTINCT id, name, description, created, deleted
     FROM RoleHierarchy;

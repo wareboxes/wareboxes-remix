@@ -8,13 +8,15 @@ import { useCallback } from "react";
 import { useDataAction } from "~/utils/hooks/useDataAction";
 
 export function RolesModal({
+  opened,
+  close,
   roles,
   row,
-  setSelectedRow,
 }: {
+  opened: boolean;
+  close: () => void;
   roles: Role[];
   row: User | null;
-  setSelectedRow: (row: User | null) => void;
 }) {
   const actionData = useActionData<ActionResponse>();
   const { state: navState } = useNavigation();
@@ -50,8 +52,8 @@ export function RolesModal({
 
   return (
     <Modal
-      opened={!!row}
-      onClose={() => setSelectedRow(null)}
+      opened={opened}
+      onClose={close}
       title={`Roles - ${row?.email}`}
     >
       {filteredRoles?.length > 0 && (
