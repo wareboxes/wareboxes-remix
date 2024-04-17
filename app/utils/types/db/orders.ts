@@ -31,18 +31,19 @@ export const pickWaves = wareboxes.table("pick_waves", {
 
 export const orders = wareboxes.table("orders", {
   id: serial("id").primaryKey().notNull(),
+  orderKey: varchar("order_key", { length: 255 }).notNull().unique(),
   created: timestamp("created", { mode: "string" }).defaultNow().notNull(),
   deleted: timestamp("deleted", { mode: "string" }),
   rush: boolean("rush").default(false).notNull(),
-  // TODO: failed to parse database type 'wareboxes.order_status'
-  status: orderStatus("status").notNull(),
-  addressId: integer("address_id").default(1).notNull(),
+  status: orderStatus("status").notNull().default("open"),
+  addressId: integer("address_id").notNull(),
   confirmed: timestamp("confirmed", { mode: "string" }),
   closed: timestamp("closed", { mode: "string" }),
-  shipby: date("shipby"),
+  shipBy: date("ship_by"),
   waveId: integer("wave_id").references(() => pickWaves.id),
   accountId: integer("account_id").references(() => accounts.id),
 });
+
 export const orderItems = wareboxes.table("order_items", {
   id: serial("id").primaryKey().notNull(),
   created: timestamp("created", { mode: "string" }).defaultNow().notNull(),
@@ -90,13 +91,16 @@ export const orderItemRelationships = relations(orderItems, ({ one }) => ({
   }),
 }));
 
-export const orderActivityRelationships = relations(orderActivity, ({ one }) => ({
-  order: one(orders, {
-    fields: [orderActivity.orderId],
-    references: [orders.id],
-    relationName: "orderActivity",
-  }),
-}));
+export const orderActivityRelationships = relations(
+  orderActivity,
+  ({ one }) => ({
+    order: one(orders, {
+      fields: [orderActivity.orderId],
+      references: [orders.id],
+      relationName: "orderActivity",
+    }),
+  })
+);
 
 export type SelectOrder = typeof orders.$inferSelect;
 export type InsertOrder = typeof orders.$inferInsert;
