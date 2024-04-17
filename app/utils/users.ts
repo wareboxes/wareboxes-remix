@@ -1,7 +1,7 @@
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "./db";
-import { addDevAdmin, addRoleAndUserRole } from "./permissions";
+import { addDevAdmin } from "./permissions";
 import {
   roles,
   userRoles,
@@ -11,6 +11,7 @@ import {
   type SelectRole as Role,
   type SelectUser as User,
 } from "./types/db/users";
+import { addRoleAndUserRole } from "./roles";
 
 export const addUser = async (email?: string): Promise<User | null> => {
   if (!email) {

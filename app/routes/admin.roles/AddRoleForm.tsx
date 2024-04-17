@@ -25,7 +25,7 @@ export function AddRoleForm({
   const adder = useDataAction({
     dataAction: RoleActions.AddChildRole,
     notificationMessages: {
-      successMessage: "User role added successfully",
+      successMessage: "Role added successfully",
     },
   });
 
