@@ -1,8 +1,6 @@
 import { ActionFunctionArgs, LoaderFunctionArgs, json } from "@remix-run/node";
-import {
-  withAuth,
-} from "~/utils/permissions";
-import { actionResponse } from "~/utils/types/actions";
+import { withAuth } from "~/utils/permissions";
+import { actionHandler, actionResponse } from "~/utils/types/actions";
 import {
   DeleteRestoreUserSchema,
   UserUpdateSchema,
@@ -13,7 +11,19 @@ import {
   updateUser,
 } from "~/utils/users";
 import { UserActions } from "./Actions";
-import { getRoles, AddDeleteUserRoleSchema, addRoleToUser } from "~/utils/roles";
+import {
+  getRoles,
+  AddDeleteUserRoleSchema,
+  addRoleToUser,
+} from "~/utils/roles";
+
+const userActionHandlers = {
+  [UserActions.UpdateUser]: handleUpdateUser,
+  [UserActions.DeleteUser]: handleDeleteUser,
+  [UserActions.RestoreUser]: handleRestoreUser,
+  [UserActions.AddUserRole]: handleAddUserRole,
+  [UserActions.DeleteUserRole]: handleDeleteUserRole,
+};
 
 export async function loader({ request }: LoaderFunctionArgs) {
   await withAuth("admin", request);
@@ -25,23 +35,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export async function action({ request }: ActionFunctionArgs) {
   await withAuth("admin", request);
-  const formData = await request.formData();
-  const action = formData.get("action");
-
-  switch (action) {
-    case UserActions.UpdateUser:
-      return handleUpdateUser(formData);
-    case UserActions.DeleteUser:
-      return handleDeleteUser(formData);
-    case UserActions.RestoreUser:
-      return handleRestoreUser(formData);
-    case UserActions.AddUserRole:
-      return handleAddUserRole(formData);
-    case UserActions.DeleteUserRole:
-      return handleDeleteUserRole(formData);
-    default:
-      return json(actionResponse(false, "Invalid action"));
-  }
+  return actionHandler(
+    request,
+    userActionHandlers,
+    actionResponse(false, "Invalid action")
+  );
 }
 
 async function handleUpdateUser(formData: FormData) {

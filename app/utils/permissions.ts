@@ -1,35 +1,70 @@
-import { and, desc, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { z } from "zod";
 import { SessionUser, auth } from "./auth";
 import { db } from "./db";
 import {
+  addRoleAndUserRole,
+  addRolePermission,
+  getRoles,
+  getUserRoles,
+} from "./roles";
+import {
+  InsertPermission,
   permissions,
   type SelectPermission as Permission,
-  type SelectUser as User
+  type SelectUser as User,
 } from "./types/db/users";
-import { addRoleAndUserRole, addRolePermission, getRoles, getUserRoles } from "./roles";
 
 export const addPermission = async (
-  permission: string,
-  description: string
+  permissionData: InsertPermission
 ): Promise<{ success: boolean; id: number }> => {
   const res = await db
     .insert(permissions)
-    .values({ name: permission, description })
-    .returning({ id: permissions.id });
+    .values(permissionData)
+    .returning({ id: permissions.id })
+    .onConflictDoUpdate({
+      target: [permissions.id],
+      set: { deleted: null },
+    });
   return { success: true, id: res[0].id };
+};
+
+export const updatePermission = async (
+  permissionId: number,
+  permissionData: Partial<InsertPermission>
+): Promise<boolean> => {
+  const res = await db
+    .update(permissions)
+    .set(permissionData)
+    .where(eq(permissions.id, permissionId));
+  return !!res;
+};
+
+export const deletePermission = async (
+  permissionId: number
+): Promise<boolean> => {
+  const res = await db
+    .update(permissions)
+    .set({ deleted: new Date().toISOString() })
+    .where(eq(permissions.id, permissionId));
+  return !!res;
+};
+
+export const restorePermission = async (
+  permissionId: number
+): Promise<boolean> => {
+  const res = await db
+    .update(permissions)
+    .set({ deleted: null })
+    .where(eq(permissions.id, permissionId));
+  return !!res;
 };
 
 export const getPermissions = async (
   showDeleted = false
 ): Promise<Permission[]> => {
   const res = await db
-    .select({
-      id: permissions.id,
-      name: permissions.name,
-      description: permissions.description,
-      created: permissions.created,
-      deleted: permissions.deleted,
-    })
+    .select()
     .from(permissions)
     .where((permissions) => {
       const conditions = [];
@@ -41,6 +76,7 @@ export const getPermissions = async (
       return and(...conditions);
     })
     .orderBy(desc(permissions.created));
+    console.log(res);
   return res;
 };
 
@@ -137,7 +173,12 @@ export async function addDevAdmin(email: string) {
       (p) => p.name.toUpperCase() === "admin".toUpperCase()
     )?.id;
     if (!permissionId) {
-      permissionId = (await addPermission("admin", "Admin permission"))?.id;
+      permissionId = (
+        await addPermission({
+          name: "admin",
+          description: "Admin permission",
+        })
+      ).id;
     }
     // Get self role
     const roleRes = await getRoles(false, true);
@@ -172,3 +213,18 @@ export const withAuth = async (
     throw new Response("Forbidden", { status: 403 });
   }
 };
+
+export const AddPermissionSchema = z.object({
+  name: z.string().min(3),
+  description: z.string().min(3).optional(),
+});
+
+export const UpdatePermissionScehma = z.object({
+  permissionId: z.number({coerce: true}).positive(),
+  name: z.string().min(3).optional(),
+  description: z.string().min(3).optional(),
+});
+
+export const DeleteRestorePermissionSchema = z.object({
+  permissionId: z.number({coerce: true}).positive(),
+});

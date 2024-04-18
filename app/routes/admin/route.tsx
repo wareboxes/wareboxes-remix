@@ -37,6 +37,14 @@ export default function Admin() {
         >
           Roles
         </Tabs.Tab>
+        <Tabs.Tab
+          value="permissions"
+          renderRoot={(props) => (
+            <Link to="permissions" {...props} prefetch="render" />
+          )}
+        >
+          Permissions
+        </Tabs.Tab>
       </Tabs.List>
       <Outlet />
     </Tabs>
