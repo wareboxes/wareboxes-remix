@@ -1,11 +1,35 @@
 import { ActionFunctionArgs, LoaderFunctionArgs, json } from "@remix-run/node";
+import { getPermissions, withAuth } from "~/utils/permissions";
 import {
-  getPermissions,
-  withAuth
-} from "~/utils/permissions";
-import { actionResponse } from "~/utils/types/actions";
+  AddDeleteChildRoleSchema,
+  AddDeleteRolePermissionSchema,
+  DeleteRestoreRoleSchema,
+  UpdateRoleSchema,
+  addRolePermission,
+  addRoleRelationship,
+  deleteRole,
+  deleteRolePermission,
+  deleteRoleRelationship,
+  getRoles,
+  restoreRole,
+  updateRole,
+} from "~/utils/roles";
+import {
+  ActionHandlers,
+  actionHandler,
+  actionResponse,
+} from "~/utils/types/actions";
 import { RoleActions } from "./Actions";
-import { AddDeleteChildRoleSchema, AddDeleteRolePermissionSchema, DeleteRestoreRoleSchema, UpdateRoleSchema, addRolePermission, addRoleRelationship, deleteRole, deleteRolePermission, deleteRoleRelationship, getRoles, restoreRole, updateRole } from "~/utils/roles";
+
+const roleActionHandlers: ActionHandlers = {
+  [RoleActions.UpdateRole]: handleUpdateRole,
+  [RoleActions.DeleteRole]: handleDeleteRole,
+  [RoleActions.RestoreRole]: handleRestoreRole,
+  [RoleActions.AddChildRole]: handleAddChildRole,
+  [RoleActions.DeleteChildRole]: handleDeleteChildRole,
+  [RoleActions.AddRolePermission]: handleAddRolePermission,
+  [RoleActions.DeleteRolePermission]: handleDeleteRolePermission,
+};
 
 export async function loader({ request }: LoaderFunctionArgs) {
   await withAuth("admin", request);
@@ -16,27 +40,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-  const formData = await request.formData();
-  const action = formData.get("action");
-
-  switch (action) {
-    case RoleActions.UpdateRole:
-      return handleUpdateRole(formData);
-    case RoleActions.DeleteRole:
-      return handleDeleteRole(formData);
-    case RoleActions.RestoreRole:
-      return handleRestoreRole(formData);
-    case RoleActions.AddChildRole:
-      return handleAddChildRole(formData);
-    case RoleActions.DeleteChildRole:
-      return handleDeleteChildRole(formData);
-    case RoleActions.AddRolePermission:
-      return handleAddRolePermission(formData);
-    case RoleActions.DeleteRolePermission:
-      return handleDeleteRolePermission(formData);
-    default:
-      return json(actionResponse(false, "Invalid action"));
-  }
+  return actionHandler(
+    request,
+    roleActionHandlers,
+    actionResponse(false, "Invalid action")
+  );
 }
 
 async function handleUpdateRole(formData: FormData) {

@@ -44,14 +44,13 @@ export default function AdminRoles() {
   const { updater } = Actions();
 
   const updateRole: MRT_TableOptions<ExtendedRole>["onEditingRowSave"] =
-    async ({ values, table }) => {
+    async ({ values }) => {
       const formData = new FormData();
       formData.append("roleId", values.id);
       Object.entries(values).forEach(([key, value]) => {
         if (value != null) formData.append(key, value.toString());
       });
       updater.submit(formData);
-      table.setEditingRow(null);
     };
 
   const openChildRolesModal = useCallback(
@@ -156,10 +155,10 @@ export default function AdminRoles() {
           deleteDataAction="roleDelete"
           restoreDataAction="roleRestore"
           tableId="roleId"
-          editModalTitle="Edit Role"
           columnVisibility={{
             id: false,
           }}
+          editModalTitle={(row) => `Edit Role - ${row.original.name}`}
           deleteModalTitle={(row) => `Delete Role - ${row.original.name}`}
           deleteConfirmComponent={(row) => (
             <Text>Are you sure you want to delete {row.original.name}?</Text>

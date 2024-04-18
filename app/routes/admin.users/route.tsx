@@ -1,10 +1,4 @@
-import {
-  Button,
-  Center,
-  Grid,
-  HoverCard,
-  Text
-} from "@mantine/core";
+import { Button, Center, Grid, HoverCard, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useLoaderData } from "@remix-run/react";
 import {
@@ -178,7 +172,6 @@ export default function AdminUsers() {
           deleteDataAction="deleteUser"
           restoreDataAction="restoreUser"
           tableId="userId"
-          editModalTitle="Edit User"
           columnVisibility={{
             id: false,
             firstName: false,
@@ -186,9 +179,8 @@ export default function AdminUsers() {
             nickName: false,
             phone: false,
           }}
-          deleteModalTitle={(row) =>
-            `Delete User - ${row.original.firstName} ${row.original.lastName}`
-          }
+          editModalTitle={(row) => `Edit User - ${row.original.email}`}
+          deleteModalTitle={(row) => `Delete User - ${row.original.email}`}
           deleteConfirmComponent={(row) => (
             <Text>
               Are you sure you want to delete {row.original.firstName}{" "}

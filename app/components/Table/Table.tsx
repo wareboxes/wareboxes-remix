@@ -18,7 +18,7 @@ interface TablePageProps<
   deleteDataAction: Action;
   restoreDataAction: Action;
   tableId: string;
-  editModalTitle?: string;
+  editModalTitle?: (row: MRT_Row<T>) => string;
   deleteModalTitle?: (row: MRT_Row<T>) => string;
   columnVisibility?: Record<string, boolean>;
   deleteConfirmComponent: (row: MRT_Row<T>) => React.ReactNode;
@@ -36,7 +36,7 @@ export default function TableV1<
   deleteDataAction,
   restoreDataAction,
   tableId,
-  editModalTitle = "Edit Item",
+  editModalTitle = () => `Edit Item`,
   deleteModalTitle = () => `Delete Item`,
   columnVisibility = {},
   deleteConfirmComponent,
@@ -86,7 +86,7 @@ export default function TableV1<
         table={table}
         row={row}
         internalEditComponents={internalEditComponents}
-        title={`${editModalTitle}`}
+        title={editModalTitle(row)}
       />
     ),
     mantineTableProps: {
