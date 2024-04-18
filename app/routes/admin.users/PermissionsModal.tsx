@@ -15,7 +15,7 @@ export function PermissionsModal({
     <Modal
       opened={opened}
       onClose={close}
-      title={`Permissions - ${row?.email}`}
+      title={`User Permissions - ${row?.email}`}
     >
       {row?.userPermissions?.length ? (
         <PermissionsTable permissions={row.userPermissions} />
