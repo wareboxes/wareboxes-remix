@@ -91,7 +91,7 @@ export function PermissionsModal({
           </Table.Tbody>
         </Table>
       ) : (
-        <Center>No child roles</Center>
+        <Center>No permissions</Center>
       )}
     </Modal>
   );
