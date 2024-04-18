@@ -1,4 +1,10 @@
-import { Button, Grid, Text } from "@mantine/core";
+import {
+  Button,
+  Center,
+  Grid,
+  HoverCard,
+  Text
+} from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useLoaderData } from "@remix-run/react";
 import {
@@ -12,13 +18,16 @@ import { LocaleTimeCell } from "~/components/Table/LocaleTimeCell";
 import TableV1 from "~/components/Table/Table";
 import { SelectRole as Role, SelectUser as User } from "~/utils/types/db/users";
 import { Actions } from "./Actions";
+import { PermissionsModal } from "./PermissionsModal";
+import { PermissionsTable } from "./PermissionsTable";
 import { RolesModal } from "./RolesModal";
 import { action, loader } from "./route.server";
 
 export { action, loader };
 
 export default function AdminUsers() {
-  const [rolesModalOpen, { open, close }] = useDisclosure();
+  const [rolesModalOpened, rolesModalHandler] = useDisclosure();
+  const [permissionsModalOpened, permissionsModalHandler] = useDisclosure();
   const [selectedRow, setSelectedRow] = useState<Pick<User, "id"> | null>(null);
   const { users, roles } = useLoaderData<{
     users: User[];
@@ -42,10 +51,18 @@ export default function AdminUsers() {
 
   const openRolesModal = useCallback(
     (row: MRT_Row<User>) => {
-      open();
+      rolesModalHandler.open();
       setSelectedRow({ id: row.original.id });
     },
-    [setSelectedRow, open]
+    [rolesModalHandler]
+  );
+
+  const openPermissionsModal = useCallback(
+    (row: MRT_Row<User>) => {
+      permissionsModalHandler.open();
+      setSelectedRow({ id: row.original.id });
+    },
+    [permissionsModalHandler]
   );
 
   const columns = useMemo<MRT_ColumnDef<User>[]>(
@@ -89,6 +106,34 @@ export default function AdminUsers() {
         Edit: () => null,
       },
       {
+        header: "Permissions",
+        accessorKey: "permissions",
+        enableEditing: false,
+        enableSorting: false,
+        enableColumnActions: false,
+        Cell: ({ row }: { row: MRT_Row<User> }) => {
+          return (
+            <HoverCard withArrow>
+              <HoverCard.Target>
+                <Button onClick={() => openPermissionsModal(row)}>
+                  Permissions
+                </Button>
+              </HoverCard.Target>
+              <HoverCard.Dropdown>
+                {row.original.userPermissions?.length ? (
+                  <PermissionsTable
+                    permissions={row.original.userPermissions}
+                  />
+                ) : (
+                  <Center>No permissions</Center>
+                )}
+              </HoverCard.Dropdown>
+            </HoverCard>
+          );
+        },
+        Edit: () => null,
+      },
+      {
         header: "Created",
         accessorKey: "created",
         Cell: ({ cell }: { cell: MRT_Cell<User> }) => {
@@ -109,15 +154,20 @@ export default function AdminUsers() {
         enableEditing: false,
       },
     ],
-    [openRolesModal]
+    [openPermissionsModal, openRolesModal]
   );
 
   return (
     <Grid mt="xs">
       <RolesModal
-        opened={rolesModalOpen}
-        close={close}
+        opened={rolesModalOpened}
+        close={rolesModalHandler.close}
         roles={roles}
+        row={users.find((user) => user.id === selectedRow?.id) || null}
+      />
+      <PermissionsModal
+        opened={permissionsModalOpened}
+        close={permissionsModalHandler.close}
         row={users.find((user) => user.id === selectedRow?.id) || null}
       />
       <Grid.Col span={12}>

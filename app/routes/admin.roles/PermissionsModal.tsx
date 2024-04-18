@@ -37,7 +37,7 @@ export function PermissionsModal({
   );
 
   return (
-    <Modal opened={opened} onClose={close} title={`Permissions - ${row?.name}`}>
+    <Modal opened={opened} onClose={close} title={`Role Permissions - ${row?.name}`}>
       {filteredPermissions?.length > 0 && (
         <Center>
           <AddPermissionForm
@@ -91,7 +91,7 @@ export function PermissionsModal({
           </Table.Tbody>
         </Table>
       ) : (
-        <Center>No child roles</Center>
+        <Center>No permissions</Center>
       )}
     </Modal>
   );
