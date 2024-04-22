@@ -1,4 +1,5 @@
 import {
+  IconApi,
   IconBuildingWarehouse,
   IconChartArea,
   IconClipboard,
@@ -11,6 +12,7 @@ import {
   IconRollerSkating,
   IconSettings2,
   IconSettingsBolt,
+  IconTree,
   IconTruck,
   IconUser,
 } from "@tabler/icons-react";
@@ -64,22 +66,37 @@ export const sidebarGroups = [
         items: [
           {
             label: "Users",
-            href: "/admin/users",
+            href: "/admin/user-management/users",
             iconComponent: <IconUser />,
           },
           {
             label: "Roles",
-            href: "/admin/roles",
+            href: "/admin/user-management/roles",
             iconComponent: <IconRollerSkating />,
           },
           {
             label: "Permissions",
-            href: "/admin/permissions",
+            href: "/admin/user-management/permissions",
             iconComponent: <IconLockAccess />,
           },
         ],
       },
-
+      {
+        label: "Account Management",
+        iconComponent: <IconUser />,
+        items: [
+          {
+            label: "Accounts",
+            href: "/admin/account-management/accounts",
+            iconComponent: <IconTree />,
+          },
+          {
+            label: "API Tokens",
+            href: "/admin/account-management/api-tokens",
+            iconComponent: <IconApi />,
+          }
+        ],
+      },
       {
         label: "Configuration",
         iconComponent: <IconSettings2 />,

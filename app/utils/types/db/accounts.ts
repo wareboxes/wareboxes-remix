@@ -10,7 +10,7 @@ import {
 import { wareboxes } from "./base";
 import { relations } from "drizzle-orm";
 import { users } from "./users";
-import { warehouses } from "./locations";
+import { SelectWarehouse, warehouses } from "./locations";
 import { loads } from "./loads";
 import { orders } from "./orders";
 
@@ -31,7 +31,8 @@ export const accounts = wareboxes.table("accounts", {
   id: serial("id").primaryKey().notNull(),
   created: timestamp("created", { mode: "string" }).defaultNow().notNull(),
   deleted: timestamp("deleted", { mode: "string" }),
-  name: varchar("name", { length: 255 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull().unique(),
+  email: varchar("email", { length: 255 }).notNull(),
 });
 
 export const accountTokens = wareboxes.table("account_tokens", {
@@ -143,5 +144,8 @@ export const accountTokenPermissionRelations = relations(accountTokenPermissions
 }));
 
 
-export type SelectAccount = typeof accounts.$inferSelect;
+export type SelectAccount = typeof accounts.$inferSelect & {
+  accountWarehouses?: SelectWarehouse[];
+};
+
 export type InsertAccount = typeof accounts.$inferInsert;

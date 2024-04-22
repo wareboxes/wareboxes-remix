@@ -8,8 +8,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const pathname = url.pathname;
 
-  if (pathname.endsWith("/admin")) {
-    return redirect("/admin/users");
+  if (pathname.endsWith("/")) {
+    return redirect("/admin/account-management/accounts");
   }
   return null;
 };
@@ -22,28 +22,20 @@ export default function Admin() {
     <Tabs value={currentTab}>
       <Tabs.List>
         <Tabs.Tab
-          value="users"
+          value="accounts"
           renderRoot={(props) => (
-            <Link to="users" {...props} prefetch="render" />
+            <Link to="accounts" {...props} prefetch="render" />
           )}
         >
-          Users
+          Accounts
         </Tabs.Tab>
         <Tabs.Tab
-          value="roles"
+          value="api-tokens"
           renderRoot={(props) => (
-            <Link to="roles" {...props} prefetch="render" />
+            <Link to="api-tokens" {...props} prefetch="render" />
           )}
         >
-          Roles
-        </Tabs.Tab>
-        <Tabs.Tab
-          value="permissions"
-          renderRoot={(props) => (
-            <Link to="permissions" {...props} prefetch="render" />
-          )}
-        >
-          Permissions
+          API Tokens
         </Tabs.Tab>
       </Tabs.List>
       <Outlet />

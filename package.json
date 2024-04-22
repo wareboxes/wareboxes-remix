@@ -9,7 +9,7 @@
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
     "studio": "drizzle-kit studio",
     "generate": "drizzle-kit generate:pg",
-    "migrate": "drizzle-kit migrate:pg",
+    "migrate": "drizzle-kit push:pg",
     "start": "remix-serve ./build/server/index.js",
     "typecheck": "tsc"
   },
@@ -30,7 +30,7 @@
     "@tanstack/react-table": "^8.16.0",
     "clsx": "^2.1.0",
     "dayjs": "^1.11.10",
-    "drizzle-kit": "^0.20.14",
+    "drizzle-kit": "^0.20.17",
     "drizzle-orm": "^0.30.8",
     "drizzle-zod": "^0.5.1",
     "embla-carousel-react": "^8.0.2",
