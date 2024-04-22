@@ -14,7 +14,8 @@ export const addresses = wareboxes.table("addresses", {
 	deleted: timestamp("deleted", { mode: 'string' }),
 	name: varchar("name").notNull(),
 	company: varchar("company"),
-	street: varchar("street").notNull(),
+	line1: varchar("line1").notNull(),
+	line2: varchar("line2"),
 	postalCode: varchar("postal_code"),
 	country: varchar("country").notNull(),
 	phone: varchar("phone"),
@@ -24,6 +25,5 @@ export const addresses = wareboxes.table("addresses", {
 	city: varchar("city"),
 	territory: varchar("territory"),
 	district: varchar("district"),
-	miscStreet: varchar("misc_street"),
 	validated: timestamp("validated", { mode: 'string' }),
 });

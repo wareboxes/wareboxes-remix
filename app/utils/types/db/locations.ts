@@ -29,3 +29,5 @@ export const locationInstances = wareboxes.table("location_instances", {
 	binId: integer("bin_id").references(() => locations.id),
 	cartId: integer("cart_id").references(() => locations.id),
 });
+
+export type SelectWarehouse = typeof warehouses.$inferSelect;

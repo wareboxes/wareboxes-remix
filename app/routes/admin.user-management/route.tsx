@@ -8,8 +8,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const pathname = url.pathname;
 
-  if (pathname.endsWith("/admin")) {
-    return redirect("/admin/users");
+  if (pathname.endsWith("/user-management")) {
+    return redirect("/admin/user-management/users");
   }
   return null;
 };
