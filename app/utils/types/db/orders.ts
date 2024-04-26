@@ -10,7 +10,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { accounts } from "./accounts";
-import { wareboxes } from "./base";
+import { InsertAddress, SelectAddress, wareboxes } from "./base";
 import { itemBatches } from "./inventory";
 import { items } from "./items";
 
@@ -114,14 +114,11 @@ export const orderActivityRelationships = relations(
   })
 );
 
-export type SelectOrder = typeof orders.$inferSelect;
-export type InsertOrder = typeof orders.$inferInsert & {
-  line1?: string;
-  line2?: string;
-  city?: string;
-  state?: string;
-  postalCode?: string;
-  country?: string;
+export type SelectOrder = Partial<SelectAddress> & typeof orders.$inferSelect & {
+  orderItems?: SelectOrderItem[];
+};
+
+export type InsertOrder = Partial<InsertAddress> & typeof orders.$inferInsert & {
   orderItems?: InsertOrderItem[];
 };
 

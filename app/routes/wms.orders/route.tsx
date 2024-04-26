@@ -1,5 +1,7 @@
 import { Button, Grid, Text, Tooltip } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { useLoaderData } from "@remix-run/react";
+import { IconClockExclamation } from "@tabler/icons-react";
 import {
   MRT_Cell,
   MRT_ColumnDef,
@@ -12,10 +14,8 @@ import TableV1 from "~/components/Table/Table";
 import { useDataAction } from "~/utils/hooks/useDataAction";
 import { SelectOrder as Order } from "~/utils/types/db/orders";
 import { OrderActions } from "./Actions";
-import { action, loader } from "./route.server";
-import { useDisclosure } from "@mantine/hooks";
 import { NewOrderModal } from "./NewOrderModal";
-import { IconClockExclamation } from "@tabler/icons-react";
+import { action, loader } from "./route.server";
 
 const orderStatusMap = {
   "awaiting shipment": "Awaiting Shipment",
@@ -73,7 +73,6 @@ export default function WmsOrders() {
           const rush = cell.row.original.rush;
           return (
             <Text>
-
               {rush ? (
                 <Tooltip label="Rush Order">
                   <IconClockExclamation color="orange" />
@@ -111,6 +110,50 @@ export default function WmsOrders() {
         },
       },
       {
+        header: "Address Line 1",
+        accessorKey: "line1",
+      },
+      {
+        header: "Address Line 2",
+        accessorKey: "line2",
+
+      },
+      // TODO: Add autocomplete here
+      {
+        header: "City",
+        accessorKey: "city",
+
+      },
+      {
+        header: "State",
+        accessorKey: "state",
+
+      },
+      {
+        header: "Country",
+        accessorKey: "country",
+
+      },
+      {
+        header: "Zip",
+        accessorKey: "postalCode",
+      },
+      {
+        header: "Wave ID",
+        accessorKey: "waveId",
+        enableEditing: false,
+      },
+      {
+        header: "Closed",
+        accessorKey: "closed",
+        Cell: ({ cell }: { cell: MRT_Cell<Order> }) => {
+          const closed = cell.getValue() as string;
+          return <LocaleTimeCell value={closed} />;
+        },
+        Edit: () => null,
+        enableEditing: false,
+      },
+      {
         header: "Created",
         accessorKey: "created",
         Cell: ({ cell }: { cell: MRT_Cell<Order> }) => {
@@ -145,6 +188,9 @@ export default function WmsOrders() {
           deleteDataAction="deleteOrder"
           restoreDataAction="restoreOrder"
           tableId="orderId"
+          columnVisibility={{
+            waveId: false,
+          }}
           editModalTitle={(row) => `Edit Order - ${row.original.orderKey}`}
           deleteModalTitle={(row) => `Delete Order - ${row.original.orderKey}`}
           deleteConfirmComponent={(row) => (
