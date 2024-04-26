@@ -16,8 +16,6 @@ export default function AdminPermissions() {
     permissions: Permission[];
   }>() || { permissions: [] };
 
-  console.log(permissions)
-
   const updater = useDataAction({
     dataAction: PermissionActions.UpdatePermission,
     notificationMessages: {
