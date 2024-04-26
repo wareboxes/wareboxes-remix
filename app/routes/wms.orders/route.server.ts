@@ -41,7 +41,6 @@ async function handleNewOrder(formData: FormData) {
       actionResponse(false, "Invalid order data", result.error.flatten())
     );
   }
-
   const res = await addOrder(result.data);
 
   return json(actionResponse(res));
