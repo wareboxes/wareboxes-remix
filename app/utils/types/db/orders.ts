@@ -10,7 +10,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { accounts } from "./accounts";
-import { InsertAddress, SelectAddress, wareboxes } from "./base";
+import { InsertAddress, SelectAddress, addresses, wareboxes } from "./base";
 import { itemBatches } from "./inventory";
 import { items } from "./items";
 
@@ -89,13 +89,22 @@ export const orderRelationships = relations(orders, ({ one, many }) => ({
     fields: [orders.waveId],
     references: [pickWaves.id],
   }),
+  address: one(addresses, {
+    fields: [orders.addressId],
+    references: [addresses.id],
+  }),
 }));
 
 export const orderItemRelationships = relations(orderItems, ({ one }) => ({
-  item: one(items, {
+  orderItems: one(orders, {
+    fields: [orderItems.orderId],
+    references: [orders.id],
+    relationName: "orderItems",
+  }),
+  itemId: one(items, {
     fields: [orderItems.itemId],
     references: [items.id],
-    relationName: "orderItems",
+    relationName: "orderItemIds",
   }),
   itemBatch: one(itemBatches, {
     fields: [orderItems.itemBatchId],

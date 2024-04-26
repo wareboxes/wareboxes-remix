@@ -84,43 +84,43 @@ export const loadRelations = relations(loads, ({ one, many }) => ({
     fields: [loads.warehouseId],
     references: [warehouses.id],
   }),
-  orders: many(loadOrders),
-  notes: many(loadNotes),
-  files: many(loadFiles),
-  items: many(loadItems),
-  activity: many(loadActivity),
+  loadOrders: many(loadOrders),
+  loadNotes: many(loadNotes),
+  loadFiles: many(loadFiles),
+  loadItems: many(loadItems),
+  loadActivity: many(loadActivity),
 }));
 
 export const loadOrderRelations = relations(loadOrders, ({ one }) => ({
-  load: one(loads, {
+  loadOrders: one(loads, {
     fields: [loadOrders.loadId],
     references: [loads.id],
   }),
 }));
 
 export const loadNoteRelations = relations(loadNotes, ({ one }) => ({
-  load: one(loads, {
+  loadNotes: one(loads, {
     fields: [loadNotes.loadId],
     references: [loads.id],
   }),
 }));
 
 export const loadFileRelations = relations(loadFiles, ({ one }) => ({
-  load: one(loads, {
+  loadFiles: one(loads, {
     fields: [loadFiles.loadId],
     references: [loads.id],
   }),
 }));
 
 export const loadItemRelations = relations(loadItems, ({ one }) => ({
-  load: one(loads, {
+  loadItems: one(loads, {
     fields: [loadItems.loadId],
     references: [loads.id],
   }),
 }));
 
 export const loadActivityRelations = relations(loadActivity, ({ one }) => ({
-  load: one(loads, {
+  loadActivity: one(loads, {
     fields: [loadActivity.loadId],
     references: [loads.id],
   }),

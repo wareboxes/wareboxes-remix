@@ -11,6 +11,7 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { accounts } from "./accounts";
 import { wareboxes } from "./base";
+import { orderItems } from "./orders";
 
 export const packagingUnit = pgEnum("packaging_unit", [
   "unit_load",
@@ -107,6 +108,7 @@ export const itemRelations = relations(items, ({ one, many }) => ({
   }),
   skus: many(skus),
   upcs: many(upcs),
+  orderItemIds: many(orderItems, { relationName: "orderItemIds" }),
 }));
 
 export const skuRelations = relations(skus, ({ one }) => ({

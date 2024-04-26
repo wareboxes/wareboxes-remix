@@ -99,11 +99,10 @@ export const userAccounts = wareboxes.table(
 );
 
 export const accountRelations = relations(accounts, ({ many }) => ({
-  accountWarehouses: many(accountWarehouses),
-  userAccounts: many(userAccounts),
-  loads: many(loads),
-  orders: many(orders),
-
+  accountWarehouses: many(accountWarehouses, { relationName: "accountWarehouses" }),
+  accountUsers: many(userAccounts, { relationName: "accountUsers" }),
+  accountLoads: many(loads, {relationName: "accountLoads"}),
+  accountOrders: many(orders, {relationName: "accountOrders"}),
 }));
 
 export const accountWarehouseRelations = relations(accountWarehouses, ({ one }) => ({
