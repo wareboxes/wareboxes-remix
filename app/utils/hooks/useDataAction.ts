@@ -48,7 +48,7 @@ export function useDataAction<T>({
           title: "Success",
           message: successMessage,
         });
-      } else if (fetcher.data.error) {
+      } else if (fetcher.data.error || fetcher.data.success === false) {
         // TODO: Pass error message from the server
         notify({
           status: "error",

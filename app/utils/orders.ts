@@ -1,23 +1,22 @@
 import {
   and,
+  desc,
   eq,
   getTableColumns,
   inArray,
   isNull,
   sql,
-  desc,
 } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "./db";
+import { InsertAddress, addresses } from "./types/db/base";
 import {
   InsertOrder,
-  SelectOrder as Order,
   SelectOrderItem as OrderItem,
   orderItems,
   orderStatus,
   orders,
 } from "./types/db/orders";
-import { z } from "zod";
-import { InsertAddress, addresses } from "./types/db/base";
 
 export const addOrder = async (
   orderData: Omit<InsertOrder, "addressId">
@@ -91,16 +90,19 @@ export const deleteOrder = async (orderId: number): Promise<boolean> => {
   return !!res;
 };
 
-export const getOrder = async (
-  orderId?: number,
-  orderKey?: string
-): Promise<Order | null> => {
+export const getOrder = async (orderId?: number, orderKey?: string) => {
   if (!orderId && !orderKey) {
     throw new Error("Either orderId or orderKey is required to get an order");
   }
   const query = db
     .select({
       ...getTableColumns(orders),
+      line1: addresses.line1,
+      line2: addresses.line2,
+      city: addresses.city,
+      state: addresses.state,
+      postalCode: addresses.postalCode,
+      country: addresses.country,
       orderItems: sql<OrderItem[]>`
       COALESCE(
         json_agg(
@@ -119,6 +121,7 @@ export const getOrder = async (
     })
     .from(orders)
     .leftJoin(orderItems, eq(orders.id, orderItems.orderId))
+    .leftJoin(addresses, eq(orders.addressId, addresses.id))
     .$dynamic();
 
   if (orderId) {
@@ -126,6 +129,7 @@ export const getOrder = async (
   } else if (orderKey) {
     query.where(eq(orders.orderKey, orderKey));
   }
+  query.groupBy(orders.id, addresses.id);
 
   const res = await query;
   return res[0] || null;
