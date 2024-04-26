@@ -76,7 +76,6 @@ export const getPermissions = async (
       return and(...conditions);
     })
     .orderBy(desc(permissions.created));
-    console.log(res);
   return res;
 };
 
