@@ -1,6 +1,11 @@
-import { Grid, Text } from "@mantine/core";
+import { Button, Grid, Text, Tooltip } from "@mantine/core";
 import { useLoaderData } from "@remix-run/react";
-import { MRT_Cell, MRT_ColumnDef, MRT_Row, MRT_TableOptions } from "mantine-react-table";
+import {
+  MRT_Cell,
+  MRT_ColumnDef,
+  MRT_Row,
+  MRT_TableOptions,
+} from "mantine-react-table";
 import { useMemo } from "react";
 import { LocaleTimeCell } from "~/components/Table/LocaleTimeCell";
 import TableV1 from "~/components/Table/Table";
@@ -8,6 +13,9 @@ import { useDataAction } from "~/utils/hooks/useDataAction";
 import { SelectOrder as Order } from "~/utils/types/db/orders";
 import { OrderActions } from "./Actions";
 import { action, loader } from "./route.server";
+import { useDisclosure } from "@mantine/hooks";
+import { NewOrderModal } from "./NewOrderModal";
+import { IconClockExclamation } from "@tabler/icons-react";
 
 const orderStatusMap = {
   "awaiting shipment": "Awaiting Shipment",
@@ -22,6 +30,10 @@ export { action, loader };
 
 export default function WmsOrders() {
   // const [orderItemsModalOpen, { open, close }] = useDisclosure();
+  const [
+    newOrderModalOpen,
+    { open: openNewOrderModal, close: closeNewOrderModal },
+  ] = useDisclosure();
   // const [selectedRow, setSelectedRow] = useState<Pick<Order, "id"> | null>(
   //   null
   // );
@@ -54,6 +66,26 @@ export default function WmsOrders() {
 
   const columns = useMemo<MRT_ColumnDef<Order>[]>(
     () => [
+      {
+        header: "Info",
+        accessorKey: "idInfo",
+        Cell: ({ cell }: { cell: MRT_Cell<Order> }) => {
+          const rush = cell.row.original.rush;
+          return (
+            <Text>
+
+              {rush ? (
+                <Tooltip label="Rush Order">
+                  <IconClockExclamation color="orange" />
+                </Tooltip>
+              ) : null}
+            </Text>
+          );
+        },
+        enableEditing: false,
+        enableSorting: false,
+        enableColumnActions: false,
+      },
       {
         header: "Order ID",
         accessorKey: "id",
@@ -94,11 +126,17 @@ export default function WmsOrders() {
 
   return (
     <Grid mt="xs">
+      <NewOrderModal opened={newOrderModalOpen} onClose={closeNewOrderModal} />
       {/* <OrderItemsModal
         opened={orderItemsModalOpen}
         onClose={close}
         orderId={selectedRow?.id}
       /> */}
+      <Grid.Col span={12}>
+        <Button onClick={openNewOrderModal} color="blue">
+          New Order
+        </Button>
+      </Grid.Col>
       <Grid.Col span={12}>
         <TableV1
           data={orders}
@@ -107,17 +145,16 @@ export default function WmsOrders() {
           deleteDataAction="deleteOrder"
           restoreDataAction="restoreOrder"
           tableId="orderId"
-          editModalTitle="Edit Order"
-          deleteModalTitle={(row) => `Delete Order with ID: ${row.original.id}`}
+          editModalTitle={(row) => `Edit Order - ${row.original.orderKey}`}
+          deleteModalTitle={(row) => `Delete Order - ${row.original.orderKey}`}
           deleteConfirmComponent={(row) => (
             <Text>
-              Are you sure you want to delete Order with ID: {row.original.id}?
+              Are you sure you want to delete order {row.original.orderKey}?
             </Text>
           )}
           canDeleteRow={(row: MRT_Row<Order>) => ({
             delete: ["open"].includes(row.original.status),
             reason: "Can only delete open orders",
-
           })}
           canEditRow={(row: MRT_Row<Order>) => ({
             edit: ["open", "held"].includes(row.original.status),

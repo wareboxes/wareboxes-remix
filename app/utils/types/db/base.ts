@@ -12,7 +12,7 @@ export const addresses = wareboxes.table("addresses", {
 	id: serial("id").primaryKey().notNull(),
 	created: timestamp("created", { mode: 'string' }).defaultNow().notNull(),
 	deleted: timestamp("deleted", { mode: 'string' }),
-	name: varchar("name").notNull(),
+	name: varchar("name"),
 	company: varchar("company"),
 	line1: varchar("line1").notNull(),
 	line2: varchar("line2"),
@@ -27,3 +27,6 @@ export const addresses = wareboxes.table("addresses", {
 	district: varchar("district"),
 	validated: timestamp("validated", { mode: 'string' }),
 });
+
+export type SelectAddress = typeof addresses.$inferSelect;
+export type InsertAddress = typeof addresses.$inferInsert;
