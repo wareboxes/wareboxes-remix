@@ -1,12 +1,35 @@
-import { and, eq, getTableColumns, inArray, isNull, sql, desc } from "drizzle-orm";
+import {
+  and,
+  eq,
+  getTableColumns,
+  inArray,
+  isNull,
+  sql,
+  desc,
+} from "drizzle-orm";
 import { db } from "./db";
-import { InsertOrder, SelectOrder as Order, SelectOrderItem as OrderItem, orderItems, orderStatus, orders } from "./types/db/orders";
+import {
+  InsertOrder,
+  SelectOrder as Order,
+  SelectOrderItem as OrderItem,
+  orderItems,
+  orderStatus,
+  orders,
+} from "./types/db/orders";
 import { z } from "zod";
+import { InsertAddress, addresses } from "./types/db/base";
 
-export const addOrder = async (orderData: InsertOrder): Promise<boolean> => {
+export const addOrder = async (
+  orderData: Omit<InsertOrder, "addressId">
+): Promise<boolean> => {
+  const addressId = await db
+    .insert(addresses)
+    .values(orderData as InsertAddress)
+    .returning({ id: addresses.id });
+
   const res = await db
     .insert(orders)
-    .values(orderData)
+    .values({ ...orderData, addressId: addressId[0].id })
     .returning({ id: orders.id });
   return !!res;
 };
@@ -57,9 +80,10 @@ export const getOrder = async (
   if (!orderId && !orderKey) {
     throw new Error("Either orderId or orderKey is required to get an order");
   }
-  const query = db.select({
-    ...getTableColumns(orders),
-    orderItems: sql<OrderItem[]>`
+  const query = db
+    .select({
+      ...getTableColumns(orders),
+      orderItems: sql<OrderItem[]>`
       COALESCE(
         json_agg(
           json_build_object(
@@ -74,9 +98,10 @@ export const getOrder = async (
         '[]'
       )::jsonb
     `,
-  }).from(orders)
-  .leftJoin(orderItems, eq(orders.id, orderItems.orderId))
-  .$dynamic();
+    })
+    .from(orders)
+    .leftJoin(orderItems, eq(orders.id, orderItems.orderId))
+    .$dynamic();
 
   if (orderId) {
     query.where(eq(orders.id, orderId));
@@ -84,7 +109,7 @@ export const getOrder = async (
     query.where(eq(orders.orderKey, orderKey));
   }
 
-  const res = await query
+  const res = await query;
   return res[0] || null;
 };
 
@@ -112,20 +137,38 @@ export const getOrders = async (): Promise<Order[]> => {
     .leftJoin(orderItems, eq(orders.id, orderItems.orderId))
     .where(isNull(orders.deleted))
     .groupBy(orders.id)
-    .orderBy(desc(orders.created))
+    .orderBy(desc(orders.created));
   return res;
 };
 
-export const OrderUpdateSchema = z
-  .object({
-    orderId: z.number({ coerce: true }).positive(),
-    orderKey: z.string().optional(),
-    status: z.enum(orderStatus.enumValues).optional(),
-    rush: z.boolean().optional(),
-    addressId: z.number({ coerce: true }).positive().optional(),
-    confirmed: z.string().datetime().optional(),
-    closed: z.string().datetime().optional(),
-    shipBy: z.string().datetime().optional(),
-    waveId: z.number({ coerce: true }).positive().optional(),
-    accountId: z.number({ coerce: true }).positive().optional(),
-  })
+export const NewOrderSchema = z.object({
+  orderKey: z.string(),
+  line1: z.string(),
+  line2: z
+    .string()
+    .optional()
+    .transform((v) => v || undefined),
+  city: z.string(),
+  state: z.string(),
+  postalCode: z.string(),
+  country: z.string(),
+  rush: z.boolean({ coerce: true }).optional(),
+  // shipBy: z.string().datetime().optional().transform((v) => v || undefined),
+});
+
+export const OrderUpdateSchema = z.object({
+  orderId: z.number({ coerce: true }).positive(),
+  orderKey: z.string().optional(),
+  status: z.enum(orderStatus.enumValues).optional(),
+  rush: z.boolean().optional(),
+  addressId: z.number({ coerce: true }).positive().optional(),
+  confirmed: z.string().datetime().optional(),
+  closed: z.string().datetime().optional(),
+  shipBy: z.string().datetime().optional(),
+  waveId: z.number({ coerce: true }).positive().optional(),
+  accountId: z.number({ coerce: true }).positive().optional(),
+});
+
+export const RestoreDeleteOrderSchema = z.object({
+  orderId: z.number({ coerce: true }).positive(),
+});

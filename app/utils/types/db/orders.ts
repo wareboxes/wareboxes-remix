@@ -30,20 +30,22 @@ export const pickWaves = wareboxes.table("pick_waves", {
   name: varchar("name"),
 });
 
-export const orders = wareboxes.table("orders", {
-  id: serial("id").primaryKey().notNull(),
-  orderKey: varchar("order_key", { length: 255 }).notNull(),
-  created: timestamp("created", { mode: "string" }).defaultNow().notNull(),
-  deleted: timestamp("deleted", { mode: "string" }),
-  rush: boolean("rush").default(false).notNull(),
-  status: orderStatus("status").notNull().default("open"),
-  addressId: integer("address_id").notNull(),
-  confirmed: timestamp("confirmed", { mode: "string" }),
-  closed: timestamp("closed", { mode: "string" }),
-  shipBy: date("ship_by"),
-  waveId: integer("wave_id").references(() => pickWaves.id),
-  accountId: integer("account_id").references(() => accounts.id),
-},
+export const orders = wareboxes.table(
+  "orders",
+  {
+    id: serial("id").primaryKey().notNull(),
+    orderKey: varchar("order_key", { length: 255 }).notNull(),
+    created: timestamp("created", { mode: "string" }).defaultNow().notNull(),
+    deleted: timestamp("deleted", { mode: "string" }),
+    rush: boolean("rush").default(false).notNull(),
+    status: orderStatus("status").notNull().default("open"),
+    addressId: integer("address_id").notNull(),
+    confirmed: timestamp("confirmed", { mode: "string" }),
+    closed: timestamp("closed", { mode: "string" }),
+    shipBy: date("ship_by"),
+    waveId: integer("wave_id").references(() => pickWaves.id),
+    accountId: integer("account_id").references(() => accounts.id),
+  },
   (table) => {
     return {
       orderKeyAccountIdUnique: unique("order_key_account_id_unique").on(
@@ -113,7 +115,15 @@ export const orderActivityRelationships = relations(
 );
 
 export type SelectOrder = typeof orders.$inferSelect;
-export type InsertOrder = typeof orders.$inferInsert;
+export type InsertOrder = typeof orders.$inferInsert & {
+  line1?: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+  orderItems?: InsertOrderItem[];
+};
 
 export type SelectOrderItem = typeof orderItems.$inferSelect;
 export type InsertOrderItem = typeof orderItems.$inferInsert;
