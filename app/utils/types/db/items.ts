@@ -40,6 +40,19 @@ export const weightUom = pgEnum("weight_uom", [
 ]);
 export const lengthUom = pgEnum("length_uom", ["mm", "m", "cm", "ft", "in"]);
 
+export const barcodeType = pgEnum("barcode_type", [
+  "upc",
+  "ean",
+  "isbn",
+  "code39",
+  "code128",
+  "itf",
+  "codabar",
+  "qr",
+  "pdf417",
+  "datamatrix",
+]);
+
 export const items = wareboxes.table("items", {
   id: serial("id").primaryKey().notNull(),
   created: timestamp("created", { mode: "string" }).defaultNow().notNull(),
@@ -78,14 +91,16 @@ export const skus = wareboxes.table("skus", {
   notes: text("notes"),
 });
 
-export const upcs = wareboxes.table("upcs", {
+export const barcodes = wareboxes.table("barcodes", {
   id: serial("id").primaryKey().notNull(),
   created: timestamp("created", { mode: "string" }).defaultNow().notNull(),
   deleted: timestamp("deleted", { mode: "string" }),
+  name: varchar("name").notNull().unique(),
+  type: barcodeType("type").notNull(),
   itemId: integer("item_id")
     .notNull()
     .references(() => items.id),
-  upc: varchar("upc").notNull(),
+  notes: text("notes"),
 });
 
 export const accountItems = wareboxes.table("account_items", {
@@ -105,8 +120,7 @@ export const itemRelations = relations(items, ({ one, many }) => ({
     fields: [items.dimsId],
     references: [dims.id],
   }),
-  skus: many(skus),
-  upcs: many(upcs),
+  barcodes: many(barcodes),
 }));
 
 export const skuRelations = relations(skus, ({ one }) => ({
@@ -116,9 +130,9 @@ export const skuRelations = relations(skus, ({ one }) => ({
   }),
 }));
 
-export const upcRelations = relations(upcs, ({ one }) => ({
+export const barcodesRelations = relations(barcodes, ({ one }) => ({
   item: one(items, {
-    fields: [upcs.itemId],
+    fields: [barcodes.itemId],
     references: [items.id],
   }),
 }));
@@ -149,6 +163,9 @@ export type InsertDim = typeof dims.$inferInsert;
 
 export type SelectSku = typeof skus.$inferSelect;
 export type InsertSku = typeof skus.$inferInsert;
+
+export type SelectBarcode = typeof barcodes.$inferSelect;
+export type InsertBarcode = typeof barcodes.$inferInsert;
 
 export type SelectAccountItem = typeof accountItems.$inferSelect;
 export type InsertAccountItem = typeof accountItems.$inferInsert;
