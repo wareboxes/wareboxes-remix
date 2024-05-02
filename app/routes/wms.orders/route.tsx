@@ -1,5 +1,4 @@
 import { Button, Grid, Text, Tooltip } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
 import { useLoaderData } from "@remix-run/react";
 import { IconClockExclamation } from "@tabler/icons-react";
 import {
@@ -12,6 +11,7 @@ import { useMemo } from "react";
 import { LocaleTimeCell } from "~/components/Table/LocaleTimeCell";
 import TableV1 from "~/components/Table/Table";
 import { useDataAction } from "~/utils/hooks/useDataAction";
+import useModal from "~/utils/hooks/useModal";
 import { SelectOrder as Order } from "~/utils/types/db/orders";
 import { OrderActions } from "./Actions";
 import { NewOrderModal } from "./NewOrderModal";
@@ -30,13 +30,7 @@ export { action, loader };
 
 export default function WmsOrders() {
   // const [orderItemsModalOpen, { open, close }] = useDisclosure();
-  const [
-    newOrderModalOpen,
-    { open: openNewOrderModal, close: closeNewOrderModal },
-  ] = useDisclosure();
-  // const [selectedRow, setSelectedRow] = useState<Pick<Order, "id"> | null>(
-  //   null
-  // );
+  const newOrderModal = useModal();
   const { orders } = useLoaderData<{ orders: Order[] }>() || { orders: [] };
   const updater = useDataAction({
     dataAction: OrderActions.UpdateOrder,
@@ -55,14 +49,6 @@ export default function WmsOrders() {
     });
     updater.submit(formData);
   };
-
-  // const openOrderModal = useCallback(
-  //   (row: MRT_Row<Order>) => {
-  //     open();
-  //     setSelectedRow({ id: row.original.id });
-  //   },
-  //   [setSelectedRow, open]
-  // );
 
   const columns = useMemo<MRT_ColumnDef<Order>[]>(
     () => [
@@ -116,23 +102,19 @@ export default function WmsOrders() {
       {
         header: "Address Line 2",
         accessorKey: "line2",
-
       },
       // TODO: Add autocomplete here
       {
         header: "City",
         accessorKey: "city",
-
       },
       {
         header: "State",
         accessorKey: "state",
-
       },
       {
         header: "Country",
         accessorKey: "country",
-
       },
       {
         header: "Zip",
@@ -169,14 +151,17 @@ export default function WmsOrders() {
 
   return (
     <Grid mt="xs">
-      <NewOrderModal opened={newOrderModalOpen} onClose={closeNewOrderModal} />
+      <NewOrderModal
+        opened={newOrderModal.isModalOpen}
+        close={newOrderModal.closeModal}
+      />
       {/* <OrderItemsModal
         opened={orderItemsModalOpen}
         onClose={close}
         orderId={selectedRow?.id}
       /> */}
       <Grid.Col span={12}>
-        <Button onClick={openNewOrderModal} color="blue">
+        <Button onClick={() => newOrderModal.openModal()} color="blue">
           New Order
         </Button>
       </Grid.Col>

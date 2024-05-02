@@ -1,5 +1,4 @@
 import { Button, Grid, Text } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
 import { useLoaderData } from "@remix-run/react";
 import {
   MRT_Cell,
@@ -7,9 +6,11 @@ import {
   MRT_TableOptions,
   type MRT_ColumnDef,
 } from "mantine-react-table";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { LocaleTimeCell } from "~/components/Table/LocaleTimeCell";
 import TableV1 from "~/components/Table/Table";
+import { createFormData } from "~/utils/forms";
+import useModal from "~/utils/hooks/useModal";
 import {
   SelectPermission as Permission,
   SelectRole as Role,
@@ -31,12 +32,8 @@ export type ExtendedRole = Role & {
 };
 
 export default function AdminRoles() {
-  const [childRolesModalOpened, ChildRolesModalHandler] = useDisclosure();
-  const [permissionModalOpened, PermissionModalHandler] = useDisclosure();
-  const [selectedRow, setSelectedRow] = useState<Pick<
-    ExtendedRole,
-    "id"
-  > | null>(null);
+  const choldRolesModal = useModal();
+  const permissionsModal = useModal();
   const { roles, permissions } = useLoaderData<{
     roles: ExtendedRole[];
     permissions: Permission[];
@@ -45,29 +42,9 @@ export default function AdminRoles() {
 
   const updateRole: MRT_TableOptions<ExtendedRole>["onEditingRowSave"] =
     async ({ values }) => {
-      const formData = new FormData();
-      formData.append("roleId", values.id);
-      Object.entries(values).forEach(([key, value]) => {
-        if (value != null) formData.append(key, value.toString());
-      });
+      const formData = createFormData("roleId", values);
       updater.submit(formData);
     };
-
-  const openChildRolesModal = useCallback(
-    (row: MRT_Row<ExtendedRole>) => {
-      ChildRolesModalHandler.open();
-      setSelectedRow({ id: row.original.id });
-    },
-    [ChildRolesModalHandler]
-  );
-
-  const openPermissionModal = useCallback(
-    (row: MRT_Row<ExtendedRole>) => {
-      PermissionModalHandler.open();
-      setSelectedRow({ id: row.original.id });
-    },
-    [PermissionModalHandler]
-  );
 
   const columns = useMemo<MRT_ColumnDef<ExtendedRole>[]>(
     () => [
@@ -95,7 +72,9 @@ export default function AdminRoles() {
         enableColumnActions: false,
         Edit: () => null,
         Cell: ({ row }: { row: MRT_Row<ExtendedRole> }) => (
-          <Button onClick={() => openChildRolesModal(row)}>Roles</Button>
+          <Button onClick={() => choldRolesModal.openModal(row.original.id)}>
+            Roles
+          </Button>
         ),
       },
       {
@@ -106,7 +85,9 @@ export default function AdminRoles() {
         enableColumnActions: false,
         Edit: () => null,
         Cell: ({ row }: { row: MRT_Row<ExtendedRole> }) => (
-          <Button onClick={() => openPermissionModal(row)}>Permissions</Button>
+          <Button onClick={() => permissionsModal.openModal(row.original.id)}>
+            Permissions
+          </Button>
         ),
       },
       {
@@ -130,22 +111,26 @@ export default function AdminRoles() {
         Edit: () => null,
       },
     ],
-    [openChildRolesModal, openPermissionModal]
+    [choldRolesModal, permissionsModal]
   );
 
   return (
     <Grid mt="xs">
       <ChildRolesModal
-        opened={childRolesModalOpened}
-        close={ChildRolesModalHandler.close}
+        opened={choldRolesModal.isModalOpen}
+        close={choldRolesModal.closeModal}
         roles={roles}
-        row={roles.find((role) => role.id === selectedRow?.id) || null}
+        row={
+          roles.find((role) => role.id === choldRolesModal.selectedId) || null
+        }
       />
       <PermissionsModal
-        opened={permissionModalOpened}
-        close={PermissionModalHandler.close}
+        opened={permissionsModal.isModalOpen}
+        close={permissionsModal.closeModal}
         permissions={permissions}
-        row={roles.find((role) => role.id === selectedRow?.id) || null}
+        row={
+          roles.find((role) => role.id === permissionsModal.selectedId) || null
+        }
       />
       <Grid.Col span={12}>
         <TableV1

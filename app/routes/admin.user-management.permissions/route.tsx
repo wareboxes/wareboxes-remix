@@ -4,6 +4,7 @@ import { MRT_Cell, MRT_ColumnDef, MRT_TableOptions } from "mantine-react-table";
 import { useMemo } from "react";
 import { LocaleTimeCell } from "~/components/Table/LocaleTimeCell";
 import TableV1 from "~/components/Table/Table";
+import { createFormData } from "~/utils/forms";
 import { useDataAction } from "~/utils/hooks/useDataAction";
 import { SelectPermission as Permission } from "~/utils/types/db/users";
 import { PermissionActions } from "./Actions";
@@ -25,11 +26,7 @@ export default function AdminPermissions() {
 
   const updatePermission: MRT_TableOptions<Permission>["onEditingRowSave"] =
     async ({ values }) => {
-      const formData = new FormData();
-      formData.append("permissionId", values.id);
-      Object.entries(values).forEach(([key, value]) => {
-        if (value != null) formData.append(key, value.toString());
-      });
+      const formData = createFormData("permissionId", values);
       updater.submit(formData);
     };
 

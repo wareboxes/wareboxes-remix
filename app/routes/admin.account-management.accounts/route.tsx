@@ -1,5 +1,4 @@
 import { Button, Grid, Text } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
 import { useLoaderData } from "@remix-run/react";
 import {
   MRT_Cell,
@@ -7,9 +6,11 @@ import {
   MRT_Row,
   MRT_TableOptions,
 } from "mantine-react-table";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { LocaleTimeCell } from "~/components/Table/LocaleTimeCell";
 import TableV1 from "~/components/Table/Table";
+import { createFormData } from "~/utils/forms";
+import useModal from "~/utils/hooks/useModal";
 import { SelectAccount as Account } from "~/utils/types/db/accounts";
 import { SelectWarehouse as Warehouse } from "~/utils/types/db/locations";
 import { Actions } from "./Actions";
@@ -19,10 +20,7 @@ import { action, loader } from "./route.server";
 export { action, loader };
 
 export default function AdminAccounts() {
-  const [rolesModalOpened, rolesModalHandler] = useDisclosure();
-  const [selectedRow, setSelectedRow] = useState<Pick<Account, "id"> | null>(
-    null
-  );
+  const warehousesModal = useModal();
   const { accounts, warehouses } = useLoaderData<{
     accounts: Account[];
     warehouses: Warehouse[];
@@ -35,21 +33,9 @@ export default function AdminAccounts() {
   const updateAccount: MRT_TableOptions<Account>["onEditingRowSave"] = async ({
     values,
   }) => {
-    const formData = new FormData();
-    formData.append("accountId", values.id);
-    Object.entries(values).forEach(([key, value]) => {
-      if (value != null) formData.append(key, value.toString());
-    });
+    const formData = createFormData("accountId", values);
     updater.submit(formData);
   };
-
-  const openWarehousesModal = useCallback(
-    (row: MRT_Row<Account>) => {
-      rolesModalHandler.open();
-      setSelectedRow({ id: row.original.id });
-    },
-    [rolesModalHandler]
-  );
 
   const columns = useMemo<MRT_ColumnDef<Account>[]>(
     () => [
@@ -75,7 +61,7 @@ export default function AdminAccounts() {
         enableColumnActions: false,
         Cell: ({ row }: { row: MRT_Row<Account> }) => {
           return (
-            <Button onClick={() => openWarehousesModal(row)}>Warehouses</Button>
+            <Button onClick={() => warehousesModal.openModal(row.original.id)}>Warehouses</Button>
           );
         },
         Edit: () => null,
@@ -101,16 +87,16 @@ export default function AdminAccounts() {
         enableEditing: false,
       },
     ],
-    [openWarehousesModal]
+    [warehousesModal]
   );
 
   return (
     <Grid mt="xs">
       <WarehousesModal
-        opened={rolesModalOpened}
-        close={rolesModalHandler.close}
+        opened={warehousesModal.isModalOpen}
+        close={warehousesModal.closeModal}
         warehouses={warehouses}
-        row={accounts.find((account) => account.id === selectedRow?.id) || null}
+        row={accounts.find((account) => account.id === warehousesModal.selectedId) || null}
       />
       <Grid.Col span={12}>
         <TableV1
