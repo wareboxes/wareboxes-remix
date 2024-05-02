@@ -3,6 +3,7 @@ import { NavLink as Link, useLocation } from "@remix-run/react";
 import { SideMenuItem as SideMenuItemT } from "./SideMenuGroups";
 import { useCallback, useMemo, useState } from "react";
 import { useLocalStorage } from "@mantine/hooks";
+import { Protected } from "~/components/Protected";
 
 export function SideMenuItem({ item }: { item: SideMenuItemT }) {
   const [navBarWidth] = useLocalStorage({
@@ -40,8 +41,10 @@ export function SideMenuItem({ item }: { item: SideMenuItemT }) {
             fz="xs"
             lh="xs"
           >
-            {item.items.map((childItem: SideMenuItemT) => (
-              <SideMenuItem item={childItem} key={childItem.label} />
+            {item.items.map((childItem: SideMenuItemT, index) => (
+              <Protected key={index} permissions={childItem.permissions}>
+                <SideMenuItem item={childItem} key={childItem.label} />
+              </Protected>
             ))}
           </NavLink>
         </Tooltip>
