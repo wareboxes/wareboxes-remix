@@ -1,5 +1,4 @@
 import { Button, Center, Grid, HoverCard, Text } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
 import { useLoaderData } from "@remix-run/react";
 import {
   MRT_Cell,
@@ -7,22 +6,23 @@ import {
   MRT_Row,
   MRT_TableOptions,
 } from "mantine-react-table";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { LocaleTimeCell } from "~/components/Table/LocaleTimeCell";
 import TableV1 from "~/components/Table/Table";
+import useModal from "~/utils/hooks/useModal";
 import { SelectRole as Role, SelectUser as User } from "~/utils/types/db/users";
 import { Actions } from "./Actions";
 import { PermissionsModal } from "./PermissionsModal";
 import { PermissionsTable } from "./PermissionsTable";
 import { RolesModal } from "./RolesModal";
 import { action, loader } from "./route.server";
+import { createFormData } from "~/utils/forms";
 
 export { action, loader };
 
 export default function AdminUsers() {
-  const [rolesModalOpened, rolesModalHandler] = useDisclosure();
-  const [permissionsModalOpened, permissionsModalHandler] = useDisclosure();
-  const [selectedRow, setSelectedRow] = useState<Pick<User, "id"> | null>(null);
+  const rolesModal = useModal();
+  const permissionsModal = useModal();
   const { users, roles } = useLoaderData<{
     users: User[];
     roles: Role[];
@@ -35,29 +35,9 @@ export default function AdminUsers() {
   const updateUser: MRT_TableOptions<User>["onEditingRowSave"] = async ({
     values,
   }) => {
-    const formData = new FormData();
-    formData.append("userId", values.id);
-    Object.entries(values).forEach(([key, value]) => {
-      if (value != null) formData.append(key, value.toString());
-    });
+    const formData = createFormData("userId", values);
     updater.submit(formData);
   };
-
-  const openRolesModal = useCallback(
-    (row: MRT_Row<User>) => {
-      rolesModalHandler.open();
-      setSelectedRow({ id: row.original.id });
-    },
-    [rolesModalHandler]
-  );
-
-  const openPermissionsModal = useCallback(
-    (row: MRT_Row<User>) => {
-      permissionsModalHandler.open();
-      setSelectedRow({ id: row.original.id });
-    },
-    [permissionsModalHandler]
-  );
 
   const columns = useMemo<MRT_ColumnDef<User>[]>(
     () => [
@@ -95,7 +75,11 @@ export default function AdminUsers() {
         enableSorting: false,
         enableColumnActions: false,
         Cell: ({ row }: { row: MRT_Row<User> }) => {
-          return <Button onClick={() => openRolesModal(row)}>Roles</Button>;
+          return (
+            <Button onClick={() => rolesModal.openModal(row.original.id)}>
+              Roles
+            </Button>
+          );
         },
         Edit: () => null,
       },
@@ -109,7 +93,9 @@ export default function AdminUsers() {
           return (
             <HoverCard withArrow>
               <HoverCard.Target>
-                <Button onClick={() => openPermissionsModal(row)}>
+                <Button
+                  onClick={() => permissionsModal.openModal(row.original.id)}
+                >
                   Permissions
                 </Button>
               </HoverCard.Target>
@@ -148,21 +134,23 @@ export default function AdminUsers() {
         enableEditing: false,
       },
     ],
-    [openPermissionsModal, openRolesModal]
+    [rolesModal, permissionsModal]
   );
 
   return (
     <Grid mt="xs">
       <RolesModal
-        opened={rolesModalOpened}
-        close={rolesModalHandler.close}
+        opened={rolesModal.isModalOpen}
+        close={rolesModal.closeModal}
         roles={roles}
-        row={users.find((user) => user.id === selectedRow?.id) || null}
+        row={users.find((user) => user.id === rolesModal.selectedId) || null}
       />
       <PermissionsModal
-        opened={permissionsModalOpened}
-        close={permissionsModalHandler.close}
-        row={users.find((user) => user.id === selectedRow?.id) || null}
+        opened={permissionsModal.isModalOpen}
+        close={permissionsModal.closeModal}
+        row={
+          users.find((user) => user.id === permissionsModal.selectedId) || null
+        }
       />
       <Grid.Col span={12}>
         <TableV1
