@@ -22,6 +22,7 @@ export type SideMenuItem = {
   iconComponent: React.ReactNode;
   href?: string;
   items?: SideMenuItem[];
+  permissions?: string[];
 };
 
 export const sidebarGroups = [
@@ -63,21 +64,25 @@ export const sidebarGroups = [
       {
         label: "User Management",
         iconComponent: <IconLockAccess />,
+        permission: "admin",
         items: [
           {
             label: "Users",
             href: "/admin/user-management/users",
             iconComponent: <IconUser />,
+            permissions: ["admin"],
           },
           {
             label: "Roles",
             href: "/admin/user-management/roles",
             iconComponent: <IconRollerSkating />,
+            permissions: ["admin"],
           },
           {
             label: "Permissions",
             href: "/admin/user-management/permissions",
             iconComponent: <IconLockAccess />,
+            permissions: ["admin"],
           },
         ],
       },
