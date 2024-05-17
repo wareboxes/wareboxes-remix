@@ -34,11 +34,11 @@ const auth0Strategy = new Auth0Strategy<SessionUser>(
     if (!profile.emails) {
       throw new Error("No email found in profile");
     }
-    const user = await addUser(profile.emails[0].value);
-    if (!user) {
+    const userRes = await addUser(profile.emails[0].value);
+    if (!userRes.success) {
       throw new Error("Failed to create or retrieve user");
     }
-    return { ...profile, ...user } as SessionUser;
+    return { ...profile, ...userRes.data } as SessionUser;
   }
 );
 

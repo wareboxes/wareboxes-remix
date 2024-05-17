@@ -17,7 +17,10 @@ export function Protected({
     return session?.userPermissions?.map((perm) => perm.name) ?? [];
   }, [session]);
 
-  if (permissions && !permissions.some((perm) => permNames.includes(perm))) {
+  if (
+    permissions &&
+    !permissions.some((perm) => permNames.includes(perm.toUpperCase()))
+  ) {
     if (redirect) {
       return <Navigate to={redirect} />;
     }

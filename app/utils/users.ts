@@ -2,6 +2,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "./db";
 import { addDevAdmin } from "./permissions";
+import { addRoleAndUserRole } from "./roles";
 import {
   roles,
   userRoles,
@@ -11,15 +12,15 @@ import {
   type SelectRole as Role,
   type SelectUser as User,
 } from "./types/db/users";
-import { addRoleAndUserRole } from "./roles";
+import { Result } from "./types/result";
 
-export const addUser = async (email?: string): Promise<User | null> => {
+export const addUser = async (email?: string): Promise<Result<User>> => {
   if (!email) {
-    throw new Error("Email is required to create a user");
+    return { success: false, errors: ["Email is required to create a user"] };
   }
-  const user = await getUser("email", email);
-  if (user) {
-    return user;
+  const getUserRes = await getUser("email", email);
+  if (getUserRes.success) {
+    return { success: true, data: getUserRes.data };
   }
   const res = await db
     .insert(users)
@@ -27,33 +28,38 @@ export const addUser = async (email?: string): Promise<User | null> => {
     .onConflictDoNothing()
     .returning();
 
-  if (!res) return null;
+  if (!res) return { success: false, errors: ["Failed to create user"] };
+  console.log("res", res);
   const roleRes = addRoleAndUserRole(res[0].id, res[0].email);
   if (!roleRes) {
-    return null;
+    return { success: false, errors: ["Failed to add user role"] };
   }
-  return res[0];
+  return { success: true, data: res[0] };
 };
 
 export const updateUser = async (
   userId: number,
   userData: Partial<InsertUser>
-): Promise<boolean> => {
-  const res = await db
-    .update(users)
-    .set(userData)
-    .where(eq(users.id, userId))
-    .returning({ id: users.id });
-  return !!res;
+): Promise<Result<User>> => {
+  try {
+    const res = await db
+      .update(users)
+      .set(userData)
+      .where(eq(users.id, userId))
+      .returning();
+    return { success: true, data: res[0] };
+  } catch (error) {
+    return { success: false, errors: [(error as Error).message] };
+  }
 };
 
-export const deleteUser = async (id: number): Promise<boolean> => {
+export const deleteUser = async (id: number): Promise<Result<boolean>> => {
   const res = await db
     .update(users)
     .set({ deleted: new Date().toISOString() })
     .where(eq(users.id, id))
     .returning({ id: users.id });
-  return !!res;
+  return { success: !!res };
 };
 
 type DeleteUserRoleParams =
@@ -62,11 +68,14 @@ type DeleteUserRoleParams =
 
 export const deleteUserRole = async (
   params: DeleteUserRoleParams
-): Promise<boolean> => {
+): Promise<Result<boolean>> => {
   const { userId, roleId, userRoleId } = params;
 
   if ((!userId || !roleId) && !userRoleId) {
-    throw new Error("Either user ID and role ID or user role ID is required");
+    return {
+      success: false,
+      errors: ["Either userId and roleId or userRoleId is required"],
+    };
   }
 
   if (userRoleId) {
@@ -75,7 +84,7 @@ export const deleteUserRole = async (
       .from(roles)
       .innerJoin(userRoles, eq(userRoles.id, userRoleId));
     if (res[0].description === "Self role") {
-      throw new Error("Cannot delete self role");
+      return { success: false, errors: ["Cannot delete self role"] };
     }
   } else {
     const res = await db
@@ -89,7 +98,7 @@ export const deleteUserRole = async (
         )
       );
     if (res[0].description === "Self role") {
-      throw new Error("Cannot delete self role");
+      return { success: false, errors: ["Cannot delete self role"] };
     }
   }
 
@@ -109,27 +118,28 @@ export const deleteUserRole = async (
   }
 
   const res = await query.returning({ id: userRoles.id });
-  return !!res;
+  return { success: !!res };
 };
 
-export const restoreUser = async (id: number): Promise<boolean> => {
+export const restoreUser = async (id: number): Promise<Result<boolean>> => {
   const res = await db
     .update(users)
     .set({ deleted: null })
     .where(eq(users.id, id))
     .returning({ id: users.id });
-  return !!res;
+  return { success: !!res };
 };
 
 export const getUser = async (
   key: "email" | "id",
   value: string | number,
   deleted = false
-): Promise<User | null> => {
+): Promise<Result<User>> => {
   if (key !== "email" && key !== "id") {
-    throw new Error(
-      'Invalid key provided, key should be either "email" or "id"'
-    );
+    return {
+      success: false,
+      errors: ["Invalid key provided, key should be either 'email' or 'id'"],
+    };
   }
 
   const res = await db
@@ -210,12 +220,15 @@ export const getUser = async (
       return and(...conditions);
     })
     .groupBy(users.id);
-  await addDevAdmin(res[0].email);
-
-  return res[0];
+  if (res[0]?.email) {
+    await addDevAdmin(res[0].email);
+  }
+  return { success: !!res[0], data: res[0] };
 };
 
-export const getUsers = async (showDeleted = false): Promise<User[]> => {
+export const getUsers = async (
+  showDeleted = false
+): Promise<Result<User[]>> => {
   const res = await db
     .select({
       id: users.id,
@@ -291,7 +304,7 @@ export const getUsers = async (showDeleted = false): Promise<User[]> => {
       return and(...conditions);
     })
     .groupBy(users.id);
-  return res;
+  return { success: true, data: res };
 };
 
 export const UserUpdateSchema = z.object({

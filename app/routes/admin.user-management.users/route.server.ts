@@ -28,8 +28,8 @@ const userActionHandlers = {
 export async function loader({ request }: LoaderFunctionArgs) {
   await withAuth("admin", request);
   return {
-    users: await getUsers(true),
-    roles: await getRoles(true, true),
+    users: (await getUsers(true)).data,
+    roles: (await getRoles(true, true)).data,
   };
 }
 
@@ -53,7 +53,7 @@ async function handleUpdateUser(formData: FormData) {
 
   const { userId, ...userData } = result.data;
   const res = await updateUser(userId, userData);
-  return json(actionResponse(res));
+  return json(actionResponse(res.success, res.errors?.[0], res.data));
 }
 
 async function handleDeleteUser(formData: FormData) {
@@ -69,7 +69,7 @@ async function handleDeleteUser(formData: FormData) {
 
   const { userId } = result.data;
   const res = await deleteUser(Number(userId));
-  return json(actionResponse(res));
+  return json(actionResponse(res.success, res.errors?.[0]));
 }
 
 async function handleRestoreUser(formData: FormData) {
@@ -85,7 +85,7 @@ async function handleRestoreUser(formData: FormData) {
 
   const { userId } = result.data;
   const res = await restoreUser(Number(userId));
-  return json(actionResponse(res));
+  return json(actionResponse(res.success, res.errors?.[0]));
 }
 
 async function handleAddUserRole(formData: FormData) {
@@ -99,7 +99,7 @@ async function handleAddUserRole(formData: FormData) {
 
   const { userId, roleId } = result.data;
   const res = await addRoleToUser(Number(userId), Number(roleId));
-  return json(actionResponse(res));
+  return json(actionResponse(res.success, res.errors?.[0]));
 }
 
 async function handleDeleteUserRole(formData: FormData) {
@@ -116,5 +116,5 @@ async function handleDeleteUserRole(formData: FormData) {
     userId: Number(userId),
     roleId: Number(roleId),
   });
-  return json(actionResponse(res));
+  return json(actionResponse(res.success, res.errors?.[0]));
 }

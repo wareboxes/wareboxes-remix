@@ -48,10 +48,10 @@ export const userRoles = wareboxes.table(
     deleted: timestamp("deleted", { mode: "string" }),
     userId: integer("user_id")
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }),
     roleId: integer("role_id")
       .notNull()
-      .references(() => roles.id),
+      .references(() => roles.id, { onDelete: "cascade" }),
   },
   (table) => {
     return {
@@ -81,10 +81,10 @@ export const rolePermissions = wareboxes.table(
     deleted: timestamp("deleted", { mode: "string" }),
     roleId: integer("role_id")
       .notNull()
-      .references(() => roles.id),
+      .references(() => roles.id, { onDelete: "cascade" }),
     permissionId: integer("permission_id")
       .notNull()
-      .references(() => permissions.id),
+      .references(() => permissions.id, { onDelete: "cascade" }),
   },
   (table) => {
     return {
@@ -103,10 +103,10 @@ export const userAccounts = wareboxes.table(
     deleted: timestamp("deleted", { mode: "string" }),
     userId: integer("user_id")
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }),
     accountId: integer("account_id")
       .notNull()
-      .references(() => accounts.id),
+      .references(() => accounts.id, { onDelete: "cascade" }),
     isPrimary: boolean("is_primary").default(false).notNull(),
   },
   (table) => {

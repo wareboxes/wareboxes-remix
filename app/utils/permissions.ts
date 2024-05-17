@@ -14,10 +14,11 @@ import {
   type SelectPermission as Permission,
   type SelectUser as User,
 } from "./types/db/users";
+import { Result } from "./types/result";
 
 export const addPermission = async (
   permissionData: InsertPermission
-): Promise<{ success: boolean; id: number }> => {
+): Promise<Result<number>> => {
   const res = await db
     .insert(permissions)
     .values(permissionData)
@@ -26,43 +27,43 @@ export const addPermission = async (
       target: [permissions.id],
       set: { deleted: null },
     });
-  return { success: true, id: res[0].id };
+  return { success: true, data: res[0].id };
 };
 
 export const updatePermission = async (
   permissionId: number,
   permissionData: Partial<InsertPermission>
-): Promise<boolean> => {
+): Promise<Result<boolean>> => {
   const res = await db
     .update(permissions)
     .set(permissionData)
     .where(eq(permissions.id, permissionId));
-  return !!res;
+  return { success: !!res };
 };
 
 export const deletePermission = async (
   permissionId: number
-): Promise<boolean> => {
+): Promise<Result<boolean>> => {
   const res = await db
     .update(permissions)
     .set({ deleted: new Date().toISOString() })
     .where(eq(permissions.id, permissionId));
-  return !!res;
+  return { success: !!res };
 };
 
 export const restorePermission = async (
   permissionId: number
-): Promise<boolean> => {
+): Promise<Result<boolean>> => {
   const res = await db
     .update(permissions)
     .set({ deleted: null })
     .where(eq(permissions.id, permissionId));
-  return !!res;
+  return { success: !!res };
 };
 
 export const getPermissions = async (
   showDeleted = false
-): Promise<Permission[]> => {
+): Promise<Result<Permission[]>> => {
   const res = await db
     .select()
     .from(permissions)
@@ -76,12 +77,12 @@ export const getPermissions = async (
       return and(...conditions);
     })
     .orderBy(desc(permissions.created));
-  return res;
+  return { success: true, data: res };
 };
 
 export const getUserPermissions = async (
   userId: number
-): Promise<Permission[]> => {
+): Promise<Result<Permission[]>> => {
   const res: Permission[] = await db.execute(sql<Permission[]>`
     WITH RECURSIVE RoleHierarchy AS (
       SELECT r.id, r.parent_id
@@ -103,7 +104,7 @@ export const getUserPermissions = async (
     WHERE p.deleted IS NULL
     AND rp.deleted IS NULL;
   `);
-  return res;
+  return { success: true, data: res };
 };
 
 export const userHasPermission = async (
@@ -114,11 +115,11 @@ export const userHasPermission = async (
     if (!user.id || !user.email) {
       return false;
     }
-    const userRoles = await getUserRoles(user.id);
+    const userRoles = (await getUserRoles(user.id)).data || [];
     if (!userRoles.some((r) => r.name === user?.email)) {
       await addRoleAndUserRole(user.id, user.email);
     }
-    const userPermissions = await getUserPermissions(user.id);
+    const userPermissions = (await getUserPermissions(user.id)).data || [];
     return userPermissions.some(
       (p) => p.name.toUpperCase() === permissionName.toUpperCase()
     );
@@ -134,7 +135,7 @@ export const userHasAnyPermission = async (
   if (!user.id) {
     return false;
   }
-  const userPermissions = await getUserPermissions(user.id);
+  const userPermissions = (await getUserPermissions(user.id)).data || [];
   return permissionNames.some((permission) =>
     userPermissions.some(
       (userPermission) =>
@@ -146,41 +147,50 @@ export const userHasAnyPermission = async (
 export const getPermissionStatus = async (
   user: User | null,
   permissionNames: string[]
-): Promise<{ [key: string]: boolean }> => {
+): Promise<Result<{ [key: string]: boolean }>> => {
   if (!user) {
-    return permissionNames.reduce((permissionsMap, permission) => {
-      permissionsMap[permission] = false;
-      return permissionsMap;
-    }, {} as { [key: string]: boolean });
+    return {
+      success: true,
+      data: permissionNames.reduce((permissionsMap, permission) => {
+        permissionsMap[permission] = false;
+        return permissionsMap;
+      }, {} as { [key: string]: boolean }),
+    };
   }
 
-  const userPermissions = await getUserPermissions(user.id);
+  const userPermissions = (await getUserPermissions(user.id)).data || [];
 
-  return permissionNames.reduce((permissionsMap, permission) => {
-    permissionsMap[permission] = userPermissions.some(
-      (p) => p.name.toUpperCase() === permission.toUpperCase()
-    );
-    return permissionsMap;
-  }, {} as { [key: string]: boolean });
+  return {
+    success: true,
+    data: permissionNames.reduce((permissionsMap, permission) => {
+      permissionsMap[permission] = userPermissions.some(
+        (p) => p.name.toUpperCase() === permission.toUpperCase()
+      );
+      return permissionsMap;
+    }, {} as { [key: string]: boolean }),
+  };
 };
 
 export async function addDevAdmin(email: string) {
   if (process.env.NODE_ENV === "development") {
     // Check if the permission exists
-    const permissionRes = await getPermissions();
+    const permissionRes = (await getPermissions()).data || [];
     let permissionId = permissionRes.find(
       (p) => p.name.toUpperCase() === "admin".toUpperCase()
     )?.id;
     if (!permissionId) {
-      permissionId = (
-        await addPermission({
-          name: "admin",
-          description: "Admin permission",
-        })
-      ).id;
+      const permissionIdRes = await addPermission({
+        name: "admin",
+        description: "Admin permission",
+      });
+      if (permissionIdRes.success && permissionIdRes.data) {
+        permissionId = permissionIdRes.data;
+      } else {
+        return;
+      }
     }
     // Get self role
-    const roleRes = await getRoles(false, true);
+    const roleRes = (await getRoles(false, true)).data;
 
     const role = roleRes.find((r) => r.name === email);
     // If users doesn't have permission, add it
@@ -219,11 +229,11 @@ export const AddPermissionSchema = z.object({
 });
 
 export const UpdatePermissionScehma = z.object({
-  permissionId: z.number({coerce: true}).positive(),
+  permissionId: z.number({ coerce: true }).positive(),
   name: z.string().min(3).optional(),
   description: z.string().min(3).optional(),
 });
 
 export const DeleteRestorePermissionSchema = z.object({
-  permissionId: z.number({coerce: true}).positive(),
+  permissionId: z.number({ coerce: true }).positive(),
 });
