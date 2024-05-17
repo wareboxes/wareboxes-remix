@@ -23,7 +23,7 @@ const permissionActionHandlers = {
 export async function loader({ request }: LoaderFunctionArgs) {
   await withAuth("admin", request);
   return {
-    permissions: await getPermissions(true),
+    permissions: (await getPermissions(true)).data,
   };
 }
 
@@ -62,7 +62,7 @@ async function handleUpdatePermission(formData: FormData) {
   const { permissionId, ...permissionData } = result.data;
 
   const res = await updatePermission(permissionId, permissionData);
-  return json(actionResponse(res));
+  return json(actionResponse(res.success, res.errors?.[0]));
 }
 
 async function handleDeletePermission(formData: FormData) {
@@ -78,7 +78,7 @@ async function handleDeletePermission(formData: FormData) {
 
   const { permissionId } = result.data;
   const res = await deletePermission(Number(permissionId));
-  return json(actionResponse(res));
+  return json(actionResponse(res.success, res.errors?.[0]));
 }
 
 async function handleRestorePermission(formData: FormData) {
@@ -94,5 +94,5 @@ async function handleRestorePermission(formData: FormData) {
 
   const { permissionId } = result.data;
   const res = await restorePermission(Number(permissionId));
-  return json(actionResponse(res));
+  return json(actionResponse(res.success, res.errors?.[0]));
 }

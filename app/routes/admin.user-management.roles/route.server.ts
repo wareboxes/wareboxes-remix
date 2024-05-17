@@ -34,8 +34,8 @@ const roleActionHandlers: ActionHandlers = {
 export async function loader({ request }: LoaderFunctionArgs) {
   await withAuth("admin", request);
   return {
-    roles: await getRoles(true, true),
-    permissions: await getPermissions(),
+    roles: (await getRoles(true, true)).data,
+    permissions: (await getPermissions()).data,
   };
 }
 
@@ -58,7 +58,7 @@ async function handleUpdateRole(formData: FormData) {
 
   const { roleId, ...roleData } = result.data;
   const res = await updateRole(roleId, roleData);
-  return json(actionResponse(res));
+  return json(actionResponse(res.success, res.errors?.[0]));
 }
 
 async function handleDeleteRole(formData: FormData) {
@@ -74,7 +74,7 @@ async function handleDeleteRole(formData: FormData) {
 
   const { roleId } = result.data;
   const res = await deleteRole(Number(roleId));
-  return json(actionResponse(res));
+  return json(actionResponse(res.success, res.errors?.[0]));
 }
 
 async function handleRestoreRole(formData: FormData) {
@@ -90,7 +90,7 @@ async function handleRestoreRole(formData: FormData) {
 
   const { roleId } = result.data;
   const res = await restoreRole(Number(roleId));
-  return json(actionResponse(res));
+  return json(actionResponse(res.success, res.errors?.[0]));
 }
 
 async function handleAddChildRole(formData: FormData) {
@@ -104,7 +104,7 @@ async function handleAddChildRole(formData: FormData) {
 
   const { roleId, childRoleId } = result.data;
   const res = await addRoleRelationship(Number(roleId), Number(childRoleId));
-  return json(actionResponse(res));
+  return json(actionResponse(res.success, res.errors?.[0]));
 }
 
 async function handleDeleteChildRole(formData: FormData) {
@@ -118,7 +118,7 @@ async function handleDeleteChildRole(formData: FormData) {
 
   const { roleId, childRoleId } = result.data;
   const res = await deleteRoleRelationship(Number(roleId), Number(childRoleId));
-  return json(actionResponse(res));
+  return json(actionResponse(res.success, res.errors?.[0]));
 }
 
 async function handleAddRolePermission(formData: FormData) {
@@ -132,7 +132,7 @@ async function handleAddRolePermission(formData: FormData) {
 
   const { roleId, permissionId } = result.data;
   const res = await addRolePermission(Number(roleId), Number(permissionId));
-  return json(actionResponse(res));
+  return json(actionResponse(res.success, res.errors?.[0]));
 }
 
 async function handleDeleteRolePermission(formData: FormData) {
@@ -146,5 +146,5 @@ async function handleDeleteRolePermission(formData: FormData) {
 
   const { roleId, permissionId } = result.data;
   const res = await deleteRolePermission(Number(roleId), Number(permissionId));
-  return json(actionResponse(res));
+  return json(actionResponse(res.success, res.errors?.[0]));
 }

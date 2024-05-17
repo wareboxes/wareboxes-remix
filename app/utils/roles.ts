@@ -8,14 +8,15 @@ import {
   userRoles,
   type InsertRole,
   type SelectPermission as Permission,
-  type SelectRole as Role
+  type SelectRole as Role,
 } from "./types/db/users";
 import { addDevAdmin } from "./permissions";
+import { Result } from "./types/result";
 
 export const addRolePermission = async (
   roleId: number,
   permissionId: number
-): Promise<boolean> => {
+): Promise<Result<boolean>> => {
   const res = await db
     .insert(rolePermissions)
     .values({
@@ -28,13 +29,13 @@ export const addRolePermission = async (
         deleted: null,
       },
     });
-  return !!res;
+  return { success: !!res };
 };
 
 export const deleteRolePermission = async (
   roleId: number,
   permissionId: number
-): Promise<boolean> => {
+): Promise<Result<boolean>> => {
   const res = await db
     .update(rolePermissions)
     .set({ deleted: new Date().toISOString() })
@@ -45,38 +46,47 @@ export const deleteRolePermission = async (
       )
     );
 
-  return !!res;
+  return { success: !!res };
 };
 
 export const addRole = async (
   role: string,
   description: string
-): Promise<{ success: boolean; id: number }> => {
+): Promise<Result<number>> => {
   const res = await db
     .insert(roles)
     .values({ name: role, description })
     .returning({ id: roles.id });
-  return { success: true, id: res[0].id };
+  return { success: !!res, data: res[0].id };
 };
 
 export const addRoleRelationship = async (
   parentRoleId: number,
   childRoleId: number
-): Promise<boolean> => {
+): Promise<Result<boolean>> => {
   if (parentRoleId === childRoleId) {
-    return false;
+    return {
+      success: false,
+      errors: ["Parent and child roles cannot be the same"],
+    };
   }
 
-  const parentRole = await getRole(parentRoleId);
+  const parentRole = (await getRole(parentRoleId)).data;
   if (!parentRole) {
-    return false;
+    return { success: false, errors: ["Parent role not found"] };
   }
   // Check if child role is already a parent or child of the parent role
   if (parentRole.childRoles?.some((r) => r.id === childRoleId)) {
-    return false;
+    return {
+      success: false,
+      errors: ["Child role is already a child of the parent role"],
+    };
   }
   if (parentRole.parentRoles?.some((r) => r.id === childRoleId)) {
-    return false;
+    return {
+      success: false,
+      errors: ["Child role is a parent of the parent role"],
+    };
   }
 
   const insertRes = await db
@@ -84,16 +94,16 @@ export const addRoleRelationship = async (
     .set({ parentId: parentRoleId })
     .where(eq(roles.id, childRoleId));
 
-  return !!insertRes;
+  return { success: !!insertRes };
 };
 
 export const deleteRoleRelationship = async (
   parentRoleId: number,
   childRoleId: number
-): Promise<boolean> => {
+): Promise<Result<boolean>> => {
   const parentRole = await getRole(parentRoleId);
   if (!parentRole) {
-    return false;
+    return { success: false, errors: ["Parent role not found"] };
   }
 
   const deleteRes = await db
@@ -101,13 +111,13 @@ export const deleteRoleRelationship = async (
     .set({ parentId: null })
     .where(eq(roles.id, childRoleId));
 
-  return !!deleteRes;
+  return { success: !!deleteRes };
 };
 
 export const addRoleToUser = async (
   userId: number,
   roleId: number
-): Promise<boolean> => {
+): Promise<Result<boolean>> => {
   // Check if user already has role
   const res = await db
     .insert(userRoles)
@@ -121,18 +131,19 @@ export const addRoleToUser = async (
         deleted: null,
       },
     });
-  return !!res;
+  return { success: !!res };
 };
 
 export const updateRole = async (
   roleId: number,
   roleData: Partial<InsertRole>
-): Promise<boolean> => {
+): Promise<Result<boolean>> => {
   // Get keys from the user object
   const keys = Object.keys(roleData).filter(
     (key) => key !== "id" && roleData[key as keyof typeof roleData] !== null
   );
-  if (keys.length === 0) return false;
+  if (keys.length === 0)
+    return { success: false, errors: ["No data to update"] };
 
   const res = await db
     .update(roles)
@@ -140,30 +151,30 @@ export const updateRole = async (
     .where(eq(roles.id, roleId))
     .returning({ id: roles.id });
 
-  return !!res;
+  return { success: !!res };
 };
 
-export const deleteRole = async (id: number): Promise<boolean> => {
+export const deleteRole = async (id: number): Promise<Result<boolean>> => {
   const res = await db
     .update(roles)
     .set({ deleted: new Date().toISOString() })
     .where(eq(roles.id, id))
     .returning({ id: roles.id });
 
-  return !!res;
+  return { success: !!res };
 };
 
-export const restoreRole = async (id: number): Promise<boolean> => {
+export const restoreRole = async (id: number): Promise<Result<boolean>> => {
   const res = await db
     .update(roles)
     .set({ deleted: null })
     .where(eq(roles.id, id))
     .returning({ id: roles.id });
 
-  return !!res;
+  return { success: !!res };
 };
 
-export const getRole = async (id: number): Promise<Role | null> => {
+export const getRole = async (id: number): Promise<Result<Role>> => {
   const res = await db
     .select({
       id: roles.id,
@@ -284,7 +295,7 @@ export const getRole = async (id: number): Promise<Role | null> => {
     })
     .from(roles)
     .where(eq(roles.id, id));
-  return res[0];
+  return { success: !!res, data: res[0] };
 };
 
 export const getRoles = async (
@@ -468,12 +479,12 @@ export const getRoles = async (
     })
     .orderBy(desc(roles.created))
     .groupBy(roles.id);
-  return res;
+  return { success: true, data: res };
 };
 
 export const getRolePermissions = async (
   roleId: number
-): Promise<Permission[]> => {
+): Promise<Result<Permission[]>> => {
   const res: Permission[] = await db
     .select({
       id: permissions.id,
@@ -486,10 +497,10 @@ export const getRolePermissions = async (
     .innerJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
     .groupBy(permissions.id)
     .where(eq(roles.id, roleId));
-  return res;
+  return { success: true, data: res };
 };
 
-export const getUserRoles = async (userId: number): Promise<Role[]> => {
+export const getUserRoles = async (userId: number): Promise<Result<Role[]>> => {
   const res: Role[] = await db.execute(sql<Role[]>`
     WITH RECURSIVE RoleHierarchy AS (
       SELECT r.id, r.name, r.description, r.created, r.deleted, r.parent_id
@@ -508,24 +519,24 @@ export const getUserRoles = async (userId: number): Promise<Role[]> => {
     FROM RoleHierarchy;
   `);
 
-  return res;
+  return { success: true, data: res };
 };
 
 export const addUserRole = async (
   userId: number,
   roleId: number
-): Promise<boolean> => {
+): Promise<Result<boolean>> => {
   const res = await db.insert(userRoles).values({
     userId: userId,
     roleId: roleId,
   });
-  return !!res;
+  return { success: !!res };
 };
 
 export const addRoleAndUserRole = async (
   userId: number,
   email: string
-): Promise<boolean> => {
+): Promise<Result<boolean>> => {
   let success = false;
   await db.transaction(async (tx) => {
     const res = await tx
@@ -537,7 +548,7 @@ export const addRoleAndUserRole = async (
     await addDevAdmin(email);
     success = true;
   });
-  return success;
+  return { success };
 };
 
 export const UpdateRoleSchema = z.object({

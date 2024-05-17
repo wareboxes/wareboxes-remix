@@ -20,7 +20,7 @@ export default function AdminPermissions() {
   const updater = useDataAction({
     dataAction: PermissionActions.UpdatePermission,
     notificationMessages: {
-      successMessage: "Role updated successfully",
+      successMessage: "Permission updated successfully",
     },
   });
 
