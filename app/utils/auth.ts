@@ -13,7 +13,7 @@ const sessionStorage = createCookieSessionStorage({
     name: "__session",
     path: "/",
     sameSite: "lax",
-    secrets: [env.SVELTE_KIT_AUTH_SECRET ?? ""],
+    secrets: [env.REMIX_AUTH_SECRET ?? ""],
     secure: env.NODE_ENV === "production",
   },
 });

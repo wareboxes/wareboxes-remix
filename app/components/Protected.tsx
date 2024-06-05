@@ -18,8 +18,9 @@ export function Protected({
   }, [session]);
 
   if (
-    permissions &&
-    !permissions.some((perm) => permNames.includes(perm.toUpperCase()))
+    !permNames.includes("ADMIN") &&
+    (permissions &&
+      !permissions.some((perm) => permNames.includes(perm.toUpperCase())))
   ) {
     if (redirect) {
       return <Navigate to={redirect} />;
