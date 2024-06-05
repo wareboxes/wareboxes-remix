@@ -29,7 +29,7 @@ export const addUser = async (email?: string): Promise<Result<User>> => {
     .returning();
 
   if (!res) return { success: false, errors: ["Failed to create user"] };
-  console.log("res", res);
+
   const roleRes = addRoleAndUserRole(res[0].id, res[0].email);
   if (!roleRes) {
     return { success: false, errors: ["Failed to add user role"] };

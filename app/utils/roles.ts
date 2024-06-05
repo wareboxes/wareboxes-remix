@@ -537,18 +537,15 @@ export const addRoleAndUserRole = async (
   userId: number,
   email: string
 ): Promise<Result<boolean>> => {
-  let success = false;
   await db.transaction(async (tx) => {
     const res = await tx
       .insert(roles)
       .values({ name: email, description: "Self role" })
       .returning({ id: roles.id });
     await tx.insert(userRoles).values({ userId: userId, roleId: res[0].id });
-    // If we are in dev environment, add the admin role to the user
-    await addDevAdmin(email);
-    success = true;
   });
-  return { success };
+  await addDevAdmin(email);
+  return { success: true };
 };
 
 export const UpdateRoleSchema = z.object({

@@ -120,6 +120,14 @@ export const userHasPermission = async (
       await addRoleAndUserRole(user.id, user.email);
     }
     const userPermissions = (await getUserPermissions(user.id)).data || [];
+    // If any permission is admin, return true
+    if (
+      userPermissions.some(
+        (p) => p.name.toUpperCase() === "admin".toUpperCase()
+      )
+    ) {
+      return true;
+    }
     return userPermissions.some(
       (p) => p.name.toUpperCase() === permissionName.toUpperCase()
     );
@@ -136,6 +144,15 @@ export const userHasAnyPermission = async (
     return false;
   }
   const userPermissions = (await getUserPermissions(user.id)).data || [];
+  // If any permission is admin, return true
+  if (
+    userPermissions.some(
+      (p) => p.name.toUpperCase() === "admin".toUpperCase()
+    )
+  ) {
+    return true;
+  }
+
   return permissionNames.some((permission) =>
     userPermissions.some(
       (userPermission) =>
@@ -159,6 +176,20 @@ export const getPermissionStatus = async (
   }
 
   const userPermissions = (await getUserPermissions(user.id)).data || [];
+  // If any permission is admin, return true
+  if (
+    userPermissions.some(
+      (p) => p.name.toUpperCase() === "admin".toUpperCase()
+    )
+  ) {
+    return {
+      success: true,
+      data: permissionNames.reduce((permissionsMap, permission) => {
+        permissionsMap[permission] = true;
+        return permissionsMap;
+      }, {} as { [key: string]: boolean }),
+    };
+  }
 
   return {
     success: true,
@@ -213,7 +244,6 @@ export const withAuth = async (
   if (!user) {
     throw new Response("Unauthorized", { status: 401 });
   }
-
   const hasPermission = Array.isArray(permissionName)
     ? await userHasAnyPermission(user, permissionName)
     : await userHasPermission(user, permissionName);
